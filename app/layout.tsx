@@ -67,15 +67,34 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <meta name="theme-color" content="#386641" />
         <meta name="color-scheme" content="light" />
+        
+        {/* PWA Manifest */}
         <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/icon-16.png" />
+        
+        {/* Favicons */}
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" type="image/svg+xml" sizes="16x16" href="/icon-16.svg" />
+        <link rel="icon" type="image/svg+xml" sizes="32x32" href="/icon-32.svg" />
+        
+        {/* Apple Touch Icons */}
+        <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.svg" />
+        
+        {/* PWA Icons for different sizes */}
+        <link rel="icon" type="image/svg+xml" sizes="192x192" href="/icon-192.svg" />
+        <link rel="icon" type="image/svg+xml" sizes="512x512" href="/icon-512.svg" />
+        
+        {/* Apple PWA Configuration */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="GardenGuardian AI" />
+        
+        {/* Mobile PWA Configuration */}
         <meta name="mobile-web-app-capable" content="yes" />
+        
+        {/* Microsoft Tiles */}
         <meta name="msapplication-TileColor" content="#386641" />
+        <meta name="msapplication-TileImage" content="/icon-144.svg" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
       <body className={`${inter.className} min-h-screen flex flex-col`}>

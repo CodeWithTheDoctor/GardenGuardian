@@ -195,9 +195,12 @@ export const uploadPlantImage = async (image: File): Promise<string> => {
   }
 
   try {
+    // Compress image before upload for better performance
+    const compressedImage = await compressImage(image);
+    
     const persistenceService = await getFirebasePersistence();
     const diagnosisId = `img-${Date.now()}`;
-    const imageUrl = await persistenceService.uploadDiagnosisImage(image, diagnosisId);
+    const imageUrl = await persistenceService.uploadDiagnosisImage(compressedImage, diagnosisId);
     console.log('✅ Image uploaded to Firebase Storage:', imageUrl);
     return imageUrl;
   } catch (error) {
@@ -207,70 +210,194 @@ export const uploadPlantImage = async (image: File): Promise<string> => {
   }
 };
 
+/**
+ * Compress image for better performance and storage efficiency
+ */
+const compressImage = async (file: File, maxWidth: number = 1200, quality: number = 0.8): Promise<File> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+
+    img.onload = () => {
+      // Calculate new dimensions
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      // Draw and compress
+      ctx?.drawImage(img, 0, 0, width, height);
+      
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            console.log(`📦 Image compressed: ${(file.size / 1024).toFixed(1)}KB → ${(compressedFile.size / 1024).toFixed(1)}KB`);
+            resolve(compressedFile);
+          } else {
+            resolve(file); // Fallback to original
+          }
+        },
+        'image/jpeg',
+        quality
+      );
+    };
+
+    img.onerror = () => resolve(file); // Fallback to original
+    img.src = URL.createObjectURL(file);
+  });
+};
+
 // REAL DATA PERSISTENCE: Analyze image and save diagnosis to Firebase
 export const analyzePlantImage = async (imageFile: File): Promise<string> => {
   try {
-    // Use the AI vision analysis
-    const visionResult = await analyzeImageWithVision(imageFile);
-    
-    // Create a diagnosis based on AI analysis
-    const diagnosisId = `diagnosis-${Date.now()}`;
-    
-    // Upload image to storage
-    const imageUrl = await uploadPlantImage(imageFile);
-    
-    // Create enhanced diagnosis with real AI data
-    const enhancedDiagnosis: PlantDiagnosis = {
-      id: diagnosisId,
-      userId: 'current-user', // Will be updated by persistence service if user is logged in
-      imageUrl,
-      diagnosis: {
-        disease: visionResult.suggestedDiseases[0] || 'Unknown Plant Issue',
-        confidence: visionResult.confidence,
-        severity: visionResult.confidence > 90 ? 'severe' : visionResult.confidence > 75 ? 'moderate' : 'mild',
-        description: generateDiseaseDescription(visionResult.suggestedDiseases[0], visionResult.labels),
+    // Use retry mechanism for AI analysis
+    return await retryOperation(
+      async () => {
+        const result = await analyzeImageWithVision(imageFile);
+        
+        if (!result.labels || result.labels.length === 0) {
+          throw new Error('No analysis results received');
+        }
+        
+        const diagnosis = generateDiagnosisFromAnalysis(result);
+        console.log('✅ AI analysis completed:', diagnosis);
+        return diagnosis;
       },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      treated: false,
-      treatments: getRelevantTreatments(visionResult.suggestedDiseases[0])
-    };
-
-    // REAL DATA PERSISTENCE: Save to Firebase or fallback storage
-    await saveDiagnosis(enhancedDiagnosis);
-    
-    console.log('✅ Diagnosis saved with real persistence:', diagnosisId);
-    return diagnosisId;
-    
+      3, // max retries
+      2000 // delay between retries
+    );
   } catch (error) {
-    console.error('🚨 Error in plant analysis:', error);
-    throw new Error('Failed to analyze plant image. Please try again.');
+    console.error('🚨 AI Analysis failed after retries:', error);
+    
+    // Provide user-friendly error message
+    if (error instanceof Error) {
+      if (error.message.includes('quota')) {
+        throw new Error('Daily analysis limit reached. Please try again tomorrow or upgrade your plan.');
+      } else if (error.message.includes('network')) {
+        throw new Error('Network connection issue. Please check your internet and try again.');
+      } else if (error.message.includes('format')) {
+        throw new Error('Image format not supported. Please try a different image.');
+      }
+    }
+    
+    throw new Error('Unable to analyze image. Please try again or contact support if the issue persists.');
   }
 };
 
-// REAL DATA PERSISTENCE: Save diagnosis function
+// REAL DATA PERSISTENCE: Save diagnosis function with enhanced error handling
 export const saveDiagnosis = async (diagnosis: PlantDiagnosis): Promise<void> => {
-  if (!isFirebaseConfigured()) {
-    // Fallback: Save to sessionStorage for demo mode
-    console.log('💾 Saving diagnosis to sessionStorage (demo mode)');
-    sessionStorage.setItem(diagnosis.id, JSON.stringify(diagnosis));
+  try {
+    await retryOperation(async () => {
+      if (!isFirebaseConfigured()) {
+        // Enhanced demo mode with better error simulation
+        if (Math.random() < 0.05) { // 5% chance of simulated error
+          throw new Error('demo_network_error');
+        }
+        
+        console.log('💾 Saving diagnosis to sessionStorage (demo mode)');
+        sessionStorage.setItem(diagnosis.id, JSON.stringify(diagnosis));
+        
+        const existingDiagnoses = JSON.parse(sessionStorage.getItem('all-diagnoses') || '[]');
+        existingDiagnoses.unshift(diagnosis);
+        sessionStorage.setItem('all-diagnoses', JSON.stringify(existingDiagnoses.slice(0, 50)));
+        return;
+      }
+
+      const persistenceService = await getFirebasePersistence();
+      await persistenceService.saveDiagnosis(diagnosis);
+      console.log('✅ Diagnosis saved to Firebase:', diagnosis.id);
+    }, 3, 1000);
+  } catch (error) {
+    console.error('🚨 Error saving diagnosis:', error);
     
-    // Also save to a diagnoses list
-    const existingDiagnoses = JSON.parse(sessionStorage.getItem('all-diagnoses') || '[]');
-    existingDiagnoses.unshift(diagnosis);
-    sessionStorage.setItem('all-diagnoses', JSON.stringify(existingDiagnoses.slice(0, 50))); // Keep last 50
-    return;
+    // Handle specific error types
+    if (error instanceof Error) {
+      if (error.message === 'demo_network_error') {
+        throw new Error('Simulated network error in demo mode. This would retry automatically in production.');
+      } else if (error.message.includes('permission-denied')) {
+        throw new Error('Permission denied. Please log in again.');
+      } else if (error.message.includes('quota-exceeded')) {
+        throw new Error('Storage quota exceeded. Please contact support.');
+      }
+    }
+    
+    // Fallback to sessionStorage as last resort
+    try {
+      sessionStorage.setItem(diagnosis.id, JSON.stringify(diagnosis));
+      console.log('📝 Diagnosis saved to local storage as fallback');
+    } catch (fallbackError) {
+      throw new Error('Unable to save diagnosis. Please check your internet connection and try again.');
+    }
+  }
+};
+
+/**
+ * Retry mechanism for operations that might fail temporarily
+ */
+const retryOperation = async <T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  delay: number = 1000
+): Promise<T> => {
+  let lastError: Error;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🔄 Attempt ${attempt}/${maxRetries}...`);
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
+      console.warn(`⚠️ Attempt ${attempt} failed:`, error);
+
+      // Don't retry certain types of errors
+      if (error instanceof Error) {
+        if (error.message.includes('permission-denied') || 
+            error.message.includes('invalid-argument') ||
+            error.message.includes('not-found')) {
+          throw error; // These won't resolve with retries
+        }
+      }
+
+      if (attempt < maxRetries) {
+        console.log(`⏳ Waiting ${delay * attempt}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay * attempt));
+      }
+    }
   }
 
-  try {
-    const persistenceService = await getFirebasePersistence();
-    await persistenceService.saveDiagnosis(diagnosis);
-    console.log('✅ Diagnosis saved to Firebase:', diagnosis.id);
-  } catch (error) {
-    console.error('🚨 Error saving diagnosis to Firebase:', error);
-    // Fallback to sessionStorage
-    sessionStorage.setItem(diagnosis.id, JSON.stringify(diagnosis));
+  throw lastError!;
+};
+
+/**
+ * Generate diagnosis from AI analysis results
+ */
+const generateDiagnosisFromAnalysis = (result: any): string => {
+  if (result.plantDiseaseDetected && result.suggestedDiseases.length > 0) {
+    return result.suggestedDiseases[0];
   }
+  
+  // Analyze labels for plant-related issues
+  const labels = result.labels || [];
+  const plantLabels = labels.filter((label: any) => 
+    label.description.toLowerCase().includes('plant') ||
+    label.description.toLowerCase().includes('leaf') ||
+    label.description.toLowerCase().includes('disease')
+  );
+  
+  if (plantLabels.length > 0) {
+    return `Potential ${plantLabels[0].description} issue detected`;
+  }
+  
+  return 'Plant analysis completed - check results for details';
 };
 
 // REAL DATA PERSISTENCE: Get user diagnoses from Firebase

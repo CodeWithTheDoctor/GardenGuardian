@@ -40,6 +40,7 @@ export interface CommunityPost {
   urgency: 'low' | 'medium' | 'high';
   status: 'open' | 'resolved' | 'closed';
   likes: number;
+  likedBy: string[];
   comments: CommunityComment[];
   views: number;
   createdAt: string;
@@ -60,6 +61,7 @@ export interface CommunityComment {
   helpful: boolean;
   helpfulVotes: number;
   likes: number;
+  likedBy: string[];
   createdAt: string;
   updatedAt: string;
   verified: boolean; // Expert-verified answer
@@ -119,33 +121,35 @@ class CommunityService {
     try {
       const persistence = await this.getFirebasePersistence();
       
-      const post: CommunityPost = {
-        ...postData,
-        id: `post_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        author: await this.getUserProfile(postData.authorId),
-        likes: 0,
-        comments: [],
-        views: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        featured: false,
-        moderated: false
-      };
-
-      if (persistence) {
-        // Use the existing saveToSessionStorage method for now
-        // In a full implementation, we'd extend the persistence service
-        persistence['saveToSessionStorage']('community_posts', post);
-        console.log('✅ Community post created in Firebase storage');
+      if (persistence && persistence.isAuthenticated) {
+        // Production mode - use real Firebase
+        return await persistence.createCommunityPost(postData);
       } else {
-        // Demo mode - store in sessionStorage
+        // Demo mode - use enhanced sessionStorage
+        const post: CommunityPost = {
+          ...postData,
+          id: `post_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          author: await this.getUserProfile(postData.authorId),
+          likes: 0,
+          likedBy: [],
+          comments: [],
+          views: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          featured: false,
+          moderated: false
+        };
+
         const existingPosts = JSON.parse(sessionStorage.getItem('community_posts') || '[]');
         existingPosts.unshift(post);
         sessionStorage.setItem('community_posts', JSON.stringify(existingPosts));
+        
+        // Mark that we now have real posts (not just mock data)
+        sessionStorage.setItem('has_real_posts', 'true');
         console.log('📝 Community post created in demo mode');
+        
+        return post;
       }
-
-      return post;
     } catch (error) {
       console.error('Error creating community post:', error);
       throw error;
@@ -166,44 +170,49 @@ class CommunityService {
     try {
       const persistence = await this.getFirebasePersistence();
       
-      if (persistence) {
-        // Use the existing getAllFromSessionStorage method for now
-        const posts = persistence['getAllFromSessionStorage']('community_posts');
-        console.log('✅ Loaded community posts from Firebase storage');
-        
-        // Apply filters
-        let filteredPosts = posts;
-        if (filters.type) {
-          filteredPosts = filteredPosts.filter((p: CommunityPost) => p.type === filters.type);
-        }
-        if (filters.location) {
-          filteredPosts = filteredPosts.filter((p: CommunityPost) => 
-            p.location?.state === filters.location || 
-            p.author.location.state === filters.location
-          );
-        }
-        
-        return filteredPosts.slice(0, filters.limit || 20);
+      if (persistence && persistence.isAuthenticated) {
+        // Production mode - use real Firebase
+        return await persistence.getCommunityPosts(filters);
       } else {
-        // Demo mode
-        const posts = JSON.parse(sessionStorage.getItem('community_posts') || '[]');
-        const mockPosts = this.getMockPosts();
-        const allPosts = [...posts, ...mockPosts];
+        // Demo mode - use sessionStorage first, then mock data as fallback
+        const sessionPosts = JSON.parse(sessionStorage.getItem('community_posts') || '[]');
         
-        // Apply filters
-        let filteredPosts = allPosts;
-        if (filters.type) {
-          filteredPosts = filteredPosts.filter(p => p.type === filters.type);
+        // If user has created posts, show only those + existing session posts
+        if (sessionPosts.length > 0) {
+          console.log('📝 Loaded community posts from session storage:', sessionPosts.length);
+          
+          // Apply filters to session posts
+          let filteredPosts = sessionPosts;
+          if (filters.type) {
+            filteredPosts = filteredPosts.filter((p: CommunityPost) => p.type === filters.type);
+          }
+          if (filters.location) {
+            filteredPosts = filteredPosts.filter((p: CommunityPost) => 
+              p.location?.state === filters.location || 
+              p.author.location.state === filters.location
+            );
+          }
+          
+          return filteredPosts.slice(0, filters.limit || 20);
+        } else {
+          // No session posts, show mock data for demo purposes
+          const mockPosts = this.getMockPosts();
+          console.log('📝 Loaded mock community posts for demo');
+          
+          // Apply filters to mock posts
+          let filteredPosts = mockPosts;
+          if (filters.type) {
+            filteredPosts = filteredPosts.filter(p => p.type === filters.type);
+          }
+          if (filters.location) {
+            filteredPosts = filteredPosts.filter(p => 
+              p.location?.state === filters.location || 
+              p.author.location.state === filters.location
+            );
+          }
+          
+          return filteredPosts.slice(0, filters.limit || 20);
         }
-        if (filters.location) {
-          filteredPosts = filteredPosts.filter(p => 
-            p.location?.state === filters.location || 
-            p.author.location.state === filters.location
-          );
-        }
-        
-        console.log('📝 Loaded community posts from demo mode');
-        return filteredPosts.slice(0, filters.limit || 20);
       }
     } catch (error) {
       console.error('Error loading community posts:', error);
@@ -218,32 +227,22 @@ class CommunityService {
     try {
       const persistence = await this.getFirebasePersistence();
       
-      const comment: CommunityComment = {
-        ...commentData,
-        id: `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        author: await this.getUserProfile(commentData.authorId),
-        likes: 0,
-        helpfulVotes: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-
-      if (persistence) {
-        // Save comment using existing methods
-        persistence['saveToSessionStorage']('community_comments', comment);
-        
-        // Update post comment count
-        const posts = persistence['getAllFromSessionStorage']('community_posts');
-        const postIndex = posts.findIndex((p: CommunityPost) => p.id === postId);
-        if (postIndex >= 0) {
-          posts[postIndex].comments.push(comment);
-          posts[postIndex].updatedAt = new Date().toISOString();
-          persistence['updateInSessionStorage']('community_posts', postId, posts[postIndex]);
-        }
-        
-        console.log('✅ Comment added in Firebase storage');
+      if (persistence && persistence.isAuthenticated) {
+        // Production mode - use real Firebase
+        return await persistence.addCommentToPost(postId, commentData);
       } else {
-        // Demo mode
+        // Demo mode - use sessionStorage
+        const comment: CommunityComment = {
+          ...commentData,
+          id: `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          author: await this.getUserProfile(commentData.authorId),
+          likes: 0,
+          helpfulVotes: 0,
+          likedBy: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+
         const posts = JSON.parse(sessionStorage.getItem('community_posts') || '[]');
         const postIndex = posts.findIndex((p: CommunityPost) => p.id === postId);
         if (postIndex >= 0) {
@@ -252,11 +251,43 @@ class CommunityService {
         }
         
         console.log('📝 Comment added in demo mode');
+        return comment;
       }
-
-      return comment;
     } catch (error) {
       console.error('Error adding comment:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * REAL: Like/unlike a post
+   */
+  async togglePostLike(postId: string): Promise<{ liked: boolean; totalLikes: number }> {
+    try {
+      const persistence = await this.getFirebasePersistence();
+      
+      if (persistence && persistence.isAuthenticated) {
+        // Production mode - use real Firebase
+        return await persistence.togglePostLike(postId);
+      } else {
+        // Demo mode - simulate like functionality
+        const posts = JSON.parse(sessionStorage.getItem('community_posts') || '[]');
+        const postIndex = posts.findIndex((p: CommunityPost) => p.id === postId);
+        
+        if (postIndex >= 0) {
+          const currentLikes = posts[postIndex].likes || 0;
+          const newLikes = currentLikes + (Math.random() > 0.5 ? 1 : -1);
+          posts[postIndex].likes = Math.max(0, newLikes);
+          sessionStorage.setItem('community_posts', JSON.stringify(posts));
+          
+          console.log('📝 Post like toggled in demo mode');
+          return { liked: true, totalLikes: posts[postIndex].likes };
+        }
+        
+        return { liked: false, totalLikes: 0 };
+      }
+    } catch (error) {
+      console.error('Error toggling post like:', error);
       throw error;
     }
   }
@@ -268,18 +299,11 @@ class CommunityService {
     try {
       const persistence = await this.getFirebasePersistence();
       
-      if (persistence) {
-        // Use existing storage methods for alerts
-        const alerts = persistence['getAllFromSessionStorage']('local_alerts');
-        const filteredAlerts = alerts.filter((alert: LocalAlert) => 
-          alert.location.postcode === postcode || 
-          this.calculateDistance(alert.location.postcode, postcode) <= radius
-        );
-        
-        console.log('✅ Loaded local alerts from Firebase storage');
-        return filteredAlerts.slice(0, 10);
+      if (persistence && persistence.isAuthenticated) {
+        // Production mode - use real Firebase
+        return await persistence.getLocalAlerts(postcode, radius);
       } else {
-        // Demo mode with mock alerts
+        // Demo mode - use mock alerts
         const mockAlerts = this.getMockAlerts(postcode);
         console.log('📝 Loaded local alerts from demo mode');
         return mockAlerts;
@@ -287,6 +311,28 @@ class CommunityService {
     } catch (error) {
       console.error('Error loading local alerts:', error);
       return this.getMockAlerts(postcode);
+    }
+  }
+
+  /**
+   * REAL: Get nearby gardeners
+   */
+  async getNearbyGardeners(postcode: string, radius: number = 25): Promise<CommunityUser[]> {
+    try {
+      const persistence = await this.getFirebasePersistence();
+      
+      if (persistence && persistence.isAuthenticated) {
+        // Production mode - use real Firebase
+        return await persistence.getNearbyUsers(postcode, radius);
+      } else {
+        // Demo mode - use mock users
+        const mockUsers = this.getMockNearbyGardeners(postcode);
+        console.log('📝 Loaded nearby gardeners from demo mode');
+        return mockUsers;
+      }
+    } catch (error) {
+      console.error('Error loading nearby gardeners:', error);
+      return this.getMockNearbyGardeners(postcode);
     }
   }
 
@@ -302,9 +348,11 @@ class CommunityService {
         status: 'pending'
       };
 
-      if (persistence) {
-        persistence['saveToSessionStorage']('expert_verifications', verification);
-        console.log('✅ Expert verification submitted to Firebase storage');
+      if (persistence && persistence.isAuthenticated) {
+        // Production mode - could extend Firebase persistence for this
+        // For now, use enhanced sessionStorage
+        sessionStorage.setItem(`expert_verification_${verification.userId}`, JSON.stringify(verification));
+        console.log('✅ Expert verification submitted in production mode');
       } else {
         // Demo mode
         sessionStorage.setItem(`expert_verification_${verification.userId}`, JSON.stringify(verification));
@@ -313,35 +361,6 @@ class CommunityService {
     } catch (error) {
       console.error('Error submitting expert verification:', error);
       throw error;
-    }
-  }
-
-  /**
-   * REAL: Get nearby gardeners
-   */
-  async getNearbyGardeners(postcode: string, radius: number = 25): Promise<CommunityUser[]> {
-    try {
-      const persistence = await this.getFirebasePersistence();
-      
-      if (persistence) {
-        // Use existing storage methods
-        const users = persistence['getAllFromSessionStorage']('community_users');
-        const nearbyUsers = users.filter((user: CommunityUser) => 
-          user.location.postcode === postcode ||
-          this.calculateDistance(user.location.postcode, postcode) <= radius
-        );
-        
-        console.log('✅ Loaded nearby gardeners from Firebase storage');
-        return nearbyUsers.slice(0, 20);
-      } else {
-        // Demo mode
-        const mockUsers = this.getMockNearbyGardeners(postcode);
-        console.log('📝 Loaded nearby gardeners from demo mode');
-        return mockUsers;
-      }
-    } catch (error) {
-      console.error('Error loading nearby gardeners:', error);
-      return [];
     }
   }
 
@@ -459,11 +478,11 @@ class CommunityService {
   private getMockPosts(): CommunityPost[] {
     return [
       {
-        id: 'mock_1',
-        authorId: 'expert_1',
+        id: 'mock_demo_1',
+        authorId: 'demo_expert_1',
         author: {
-          id: 'expert_1',
-          name: 'Sarah Chen',
+          id: 'demo_expert_1',
+          name: 'Sarah Chen (Demo Expert)',
           email: 'sarah@example.com',
           avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2',
           location: { postcode: '3000', suburb: 'Melbourne', state: 'VIC' },
@@ -477,18 +496,19 @@ class CommunityService {
           plantsHelped: 234
         },
         type: 'success_story',
-        title: 'Saved my tomatoes from blight using copper spray!',
-        content: 'Thanks to GardenGuardian AI, I identified early blight on my tomatoes and treated them with copper oxychloride. 3 weeks later and they\'re thriving! The key was catching it early.',
+        title: '🌟 DEMO: Saved my tomatoes from blight using copper spray!',
+        content: 'This is a demo post to show how the community works! Thanks to GardenGuardian AI, I identified early blight on my tomatoes and treated them with copper oxychloride. 3 weeks later and they\'re thriving! The key was catching it early.\n\n✨ This is sample content for demonstration - create your own posts to replace this!',
         images: [
           'https://images.pexels.com/photos/7728056/pexels-photo-7728056.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=2'
         ],
-        tags: ['tomatoes', 'blight', 'copper-spray', 'success'],
+        tags: ['tomatoes', 'blight', 'copper-spray', 'success', 'demo'],
         disease: 'Early Blight',
         treatment: 'Copper Oxychloride',
         plantType: 'Tomatoes',
         urgency: 'low',
         status: 'resolved',
         likes: 24,
+        likedBy: [],
         comments: [],
         views: 156,
         createdAt: '2024-01-15T10:30:00Z',

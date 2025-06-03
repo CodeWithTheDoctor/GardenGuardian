@@ -4,6 +4,12 @@ Welcome to the comprehensive documentation for GardenGuardian AI, a production-r
 
 ## 📁 Documentation Structure
 
+### 🎨 [Logo & PWA Setup](./LOGO_SETUP.md)
+
+Complete logo and PWA icon setup documentation:
+
+- **[LOGO_SETUP.md](./LOGO_SETUP.md)** - PWA icons, favicon, and app manifest setup from navbar logo
+
 ### 🧪 [Testing Documentation](./testing/)
 
 Complete testing infrastructure and guides for Phase 1 & 2 features:

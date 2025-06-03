@@ -135,7 +135,7 @@ export default function Navbar() {
                   <span className="sr-only">Menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="bg-white border-garden-light/20 p-0">
+              <SheetContent side="right" className="bg-white border-garden-light/20 p-0 [&>button]:hidden">
                 <div className="flex flex-col h-full">
                   <SheetHeader className="p-4 border-b border-garden-light/20">
                     <div className="flex justify-between items-center">

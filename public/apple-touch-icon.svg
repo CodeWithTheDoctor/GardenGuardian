@@ -1,0 +1,22 @@
+<svg width="180" height="180" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="90" cy="90" r="90" fill="#386641"/>
+  
+  <!-- Leaf shape -->
+  <path d="M90 60 
+           Q120 67.5 112.5 112.5
+           Q105 120 90 135
+           Q75 120 67.5 112.5
+           Q60 67.5 90 60Z" 
+        fill="#a7c957"/>
+  
+  <!-- Leaf vein -->
+  <path d="M90 67.5 L90 120" 
+        stroke="#386641" stroke-width="2.8125" stroke-linecap="round"/>
+  
+  <!-- Small side veins -->
+  <path d="M78.75 90 L95.625 84.375" 
+        stroke="#386641" stroke-width="1.875" stroke-linecap="round"/>
+  <path d="M101.25 90 L84.375 84.375" 
+        stroke="#386641" stroke-width="1.875" stroke-linecap="round"/>
+</svg>
