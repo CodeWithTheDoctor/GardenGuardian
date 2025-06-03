@@ -60,7 +60,7 @@ Australian home gardeners lose **30-40% of their produce annually** due to late 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/garden-guardian-ai.git
+git clone https://github.com/CodeWithTheDoctor/GardenGuardian.git
 cd garden-guardian-ai
 
 # Install dependencies
@@ -233,6 +233,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Hackathon organizers** for the opportunity to build this solution
 
 ## 📞 Contact
+
+**NOTE:** Prospective links, as this is a work in progress.
 
 - **Website**: [gardenguardian.com.au](https://gardenguardian.com.au)
 - **Email**: <hello@gardenguardian.com.au>
