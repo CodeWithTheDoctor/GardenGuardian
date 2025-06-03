@@ -35,7 +35,6 @@
     "@radix-ui/react-menubar": "^1.1.1",
     "@radix-ui/react-navigation-menu": "^1.2.0",
     "@radix-ui/react-popover": "^1.1.1",
-    "@radix-ui/react-progress": "^1.1.0",
     "@radix-ui/react-radio-group": "^1.2.0",
     "@radix-ui/react-scroll-area": "^1.1.0",
     "@radix-ui/react-select": "^2.1.1",
@@ -56,7 +55,6 @@
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
-    "eslint": "8.49.0",
     "eslint-config-next": "13.5.1",
     "firebase": "^11.8.1",
     "input-otp": "^1.2.4",
@@ -79,13 +77,18 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@eslint/js": "^9.28.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^22.15.29",
     "@vitejs/plugin-react": "^4.5.1",
     "@vitest/coverage-v8": "^3.2.0",
     "cypress": "^14.4.0",
+    "eslint": "^8.57.1",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^16.2.0",
     "jsdom": "^26.1.0",
+    "typescript-eslint": "^8.33.1",
     "vitest": "^3.2.0"
   }
 }
