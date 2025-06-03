@@ -1,13 +1,49 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Leaf, Bug, Droplets, Sun, Upload, Clock, InfoIcon } from 'lucide-react';
+import { 
+  Smartphone, 
+  Camera, 
+  Leaf, 
+  Shield, 
+  Users, 
+  BarChart3,
+  ArrowRight,
+  CheckCircle,
+  Zap,
+  Globe,
+  Heart
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+
+const fadeInUp = {
+  initial: { opacity: 0, y: 60 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.6, ease: "easeOut" }
+};
+
+const staggerContainer = {
+  animate: {
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const scaleOnHover = {
+  whileHover: { scale: 1.05 },
+  whileTap: { scale: 0.95 },
+  transition: { type: "spring", stiffness: 300, damping: 20 }
+};
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-garden-cream">
+    <div className="min-h-screen bg-gradient-to-br from-garden-cream via-white to-garden-cream/50">
       {/* Bolt.new Badge - Required for hackathon */}
       <div className="fixed bottom-4 right-4 z-50">
         <Link 
@@ -28,157 +64,233 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <section className="py-12 md:py-20">
-        <div className="container mx-auto px-4">
-          <Alert className="mb-8 bg-blue-50 border-blue-200 max-w-4xl mx-auto">
-            <InfoIcon className="h-4 w-4 text-blue-600" />
-            <AlertTitle className="text-blue-800">Prototype Demonstration</AlertTitle>
-            <AlertDescription className="text-blue-700">
-              This is a high-fidelity prototype showcasing the user experience for an AI-powered plant health platform. 
-              UI/UX is production-ready, with simulated AI responses for demonstration purposes.
-            </AlertDescription>
-          </Alert>
+      <section className="relative px-4 py-12 md:py-24 lg:py-32">
+        <div className="max-w-6xl mx-auto">
+          <motion.div 
+            className="text-center mb-12 md:mb-16"
+            initial="initial"
+            animate="animate"
+            variants={staggerContainer}
+          >
+            <motion.div variants={fadeInUp}>
+              <Badge variant="outline" className="mb-4 md:mb-6 border-garden-medium text-garden-dark px-3 py-1">
+                <Leaf className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                AI-Powered Plant Health
+              </Badge>
+            </motion.div>
 
-          <div className="flex flex-col lg:flex-row items-center gap-12">
-            <div className="lg:w-1/2 text-center lg:text-left">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-garden-dark mb-6 leading-tight">
-                Your AI-Powered <br />Garden Health Detective
-                <span className="text-lg md:text-xl text-blue-600 block mt-2 font-normal">(Prototype)</span>
-              </h1>
-              <p className="text-lg md:text-xl text-garden-medium mb-8 max-w-2xl">
-                Experience how gardeners will instantly diagnose plant diseases & pests and get Australian-compliant treatments tailored to their garden.
-              </p>
-              <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
-                <Button asChild size="lg" className="bg-garden-dark hover:bg-garden-medium text-white px-8 py-6 rounded-lg text-lg">
-                  <Link href="/diagnose">
-                    Try the Demo
+            <motion.h1 
+              variants={fadeInUp}
+              className="text-3xl md:text-5xl lg:text-6xl font-bold text-garden-dark mb-4 md:mb-6 leading-tight"
+            >
+              Your Garden's
+              <br className="hidden sm:block" />
+              <span className="text-garden-medium"> AI Health Detective</span>
+            </motion.h1>
+            
+            <motion.p 
+              variants={fadeInUp}
+              className="text-lg md:text-xl text-garden-medium max-w-3xl mx-auto mb-8 md:mb-12 px-4"
+            >
+              Instantly diagnose plant diseases and get expert treatment recommendations 
+              tailored for Australian gardens. Professional-grade analysis, simplified for home gardeners.
+            </motion.p>
+            
+            <motion.div 
+              variants={fadeInUp}
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center px-4"
+            >
+              <motion.div {...scaleOnHover}>
+                <Button 
+                  asChild 
+                  size="lg" 
+                  className="bg-garden-dark hover:bg-garden-medium text-white px-8 py-3 text-lg w-full sm:w-auto"
+                >
+                  <Link href="/diagnose" className="flex items-center gap-2">
+                    <Camera className="h-5 w-5" />
+                    Start Diagnosis
+                    <ArrowRight className="h-5 w-5" />
                   </Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="border-garden-medium text-garden-dark hover:bg-garden-light/20">
+              </motion.div>
+              
+              <motion.div {...scaleOnHover}>
+                <Button 
+                  asChild 
+                  variant="outline" 
+                  size="lg" 
+                  className="border-garden-medium text-garden-dark hover:bg-garden-light/20 px-8 py-3 text-lg w-full sm:w-auto"
+                >
                   <Link href="/dashboard">
-                    View Features
+                    View Dashboard
                   </Link>
                 </Button>
-              </div>
-            </div>
-            <div className="lg:w-1/2 relative">
-              <div className="relative h-[300px] md:h-[400px] w-full overflow-hidden rounded-2xl shadow-xl">
-                <Image
-                  src="https://images.pexels.com/photos/7728078/pexels-photo-7728078.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
-                  alt="Healthy garden with vegetables"
-                  fill
-                  priority
-                  className="object-cover"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="py-12 bg-white">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-garden-dark text-center mb-12">How It Works</h2>
+              </motion.div>
+            </motion.div>
+          </motion.div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { 
-                icon: <Upload className="h-12 w-12 text-garden-dark" />, 
-                title: "Upload a Photo", 
-                description: "Take a photo of your plant showing signs of disease or pest damage." 
-              },
-              { 
-                icon: <Clock className="h-12 w-12 text-garden-medium" />, 
-                title: "Instant Diagnosis", 
-                description: "Our AI identifies the issue with accuracy and confidence rating." 
-              },
-              { 
-                icon: <Droplets className="h-12 w-12 text-garden-light" />, 
-                title: "Get Treatment", 
-                description: "Receive Australian-compliant treatment recommendations." 
-              }
-            ].map((step, index) => (
-              <Card key={index} className="border-garden-light">
-                <CardContent className="pt-6 flex flex-col items-center text-center">
-                  <div className="mb-4 p-4 bg-garden-cream rounded-full">
-                    {step.icon}
-                  </div>
-                  <h3 className="text-xl font-semibold text-garden-dark mb-2">{step.title}</h3>
-                  <p className="text-garden-medium">{step.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="py-12 bg-garden-cream">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-garden-dark text-center mb-12">Key Features</h2>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                icon: <Leaf className="h-10 w-10" />,
-                title: "Disease Identification",
-                description: "AI-powered recognition of 1000+ plant diseases and pests specific to Australian gardens."
-              },
-              {
-                icon: <Bug className="h-10 w-10" />,
-                title: "Pest Control Solutions",
-                description: "Targeted treatments for common Australian garden pests that comply with local regulations."
-              },
-              {
-                icon: <Droplets className="h-10 w-10" />,
-                title: "Treatment Plans",
-                description: "Step-by-step instructions for organic and chemical treatments with safety information."
-              },
-              {
-                icon: <Sun className="h-10 w-10" />,
-                title: "Climate Adaptation",
-                description: "Recommendations tailored to your Australian climate zone and current weather conditions."
-              },
-              {
-                icon: <Leaf className="h-10 w-10" />,
-                title: "Garden Health Tracking",
-                description: "Monitor your plants' recovery over time with progress tracking and reminders."
-              },
-              {
-                icon: <Bug className="h-10 w-10" />,
-                title: "Community Knowledge",
-                description: "Connect with local gardening experts and share successful treatment methods."
-              }
-            ].map((feature, index) => (
-              <div key={index} className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
-                <div className="p-3 bg-garden-light/20 rounded-full inline-block mb-4">
-                  <div className="text-garden-dark">
-                    {feature.icon}
-                  </div>
+          {/* Hero Image/Visual */}
+          <motion.div 
+            className="relative max-w-4xl mx-auto"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+          >
+            <div className="aspect-video bg-gradient-to-br from-garden-light/20 to-garden-medium/20 rounded-2xl overflow-hidden shadow-2xl border border-garden-light/30">
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-center p-8">
+                  <motion.div
+                    animate={{ rotate: [0, 5, -5, 0] }}
+                    transition={{ duration: 4, repeat: Infinity, repeatDelay: 2 }}
+                  >
+                    <Leaf className="h-16 w-16 md:h-24 md:w-24 text-garden-medium mx-auto mb-4" />
+                  </motion.div>
+                  <p className="text-garden-dark font-medium text-lg md:text-xl">
+                    AI-Powered Plant Analysis
+                  </p>
                 </div>
-                <h3 className="text-xl font-semibold text-garden-dark mb-2">{feature.title}</h3>
-                <p className="text-garden-medium">{feature.description}</p>
               </div>
-            ))}
-          </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-16 bg-garden-dark">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Ready to Save Your Plants?</h2>
-          <p className="text-xl text-garden-light mb-8 max-w-2xl mx-auto">
-            Don't wait until it's too late. Diagnose your plant now and get it back to health with expert recommendations.
-          </p>
-          <Button asChild size="lg" className="bg-garden-light hover:bg-garden-medium text-garden-dark font-semibold px-8 py-6 rounded-lg text-lg">
-            <Link href="/diagnose">
-              Diagnose Your First Plant
-            </Link>
-          </Button>
+      {/* Features Section */}
+      <section className="px-4 py-16 md:py-24 bg-white/50">
+        <div className="max-w-6xl mx-auto">
+          <motion.div 
+            className="text-center mb-12 md:mb-16"
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true }}
+            variants={staggerContainer}
+          >
+            <motion.h2 
+              variants={fadeInUp}
+              className="text-2xl md:text-4xl font-bold text-garden-dark mb-4"
+            >
+              Everything You Need for Healthy Plants
+            </motion.h2>
+            <motion.p 
+              variants={fadeInUp}
+              className="text-garden-medium text-lg md:text-xl max-w-2xl mx-auto"
+            >
+              Professional plant care tools designed for Australian home gardeners
+            </motion.p>
+          </motion.div>
+          
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true }}
+            variants={staggerContainer}
+          >
+            {features.map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                variants={fadeInUp}
+                whileHover={{ y: -5 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              >
+                <Card className="h-full border-garden-light/30 hover:border-garden-medium/50 transition-all duration-300 hover:shadow-lg">
+                  <CardHeader className="text-center pb-4">
+                    <motion.div 
+                      className="mx-auto mb-4 p-3 bg-garden-light/20 rounded-full w-fit"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <feature.icon className="h-6 w-6 md:h-8 md:w-8 text-garden-medium" />
+                    </motion.div>
+                    <CardTitle className="text-lg md:text-xl text-garden-dark">
+                      {feature.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <p className="text-garden-medium text-sm md:text-base leading-relaxed">
+                      {feature.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="px-4 py-16 md:py-24 bg-garden-dark text-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true }}
+            variants={staggerContainer}
+          >
+            <motion.h2 
+              variants={fadeInUp}
+              className="text-2xl md:text-4xl font-bold mb-4 md:mb-6"
+            >
+              Ready to Transform Your Garden?
+            </motion.h2>
+            <motion.p 
+              variants={fadeInUp}
+              className="text-lg md:text-xl text-garden-cream mb-8 md:mb-12 max-w-2xl mx-auto"
+            >
+              Join thousands of Australian gardeners who trust GardenGuardian AI 
+              to keep their plants healthy and thriving.
+            </motion.p>
+            <motion.div variants={fadeInUp}>
+              <motion.div {...scaleOnHover}>
+                <Button 
+                  asChild 
+                  size="lg" 
+                  className="bg-garden-light hover:bg-garden-medium text-garden-dark font-semibold px-8 py-3 text-lg"
+                >
+                  <Link href="/diagnose" className="flex items-center gap-2">
+                    <Zap className="h-5 w-5" />
+                    Get Started Now
+                    <ArrowRight className="h-5 w-5" />
+                  </Link>
+                </Button>
+              </motion.div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
     </div>
   );
 }
+
+const features = [
+  {
+    icon: Camera,
+    title: "AI Plant Doctor",
+    description: "Instant disease identification via photo upload with professional-grade accuracy for Australian plant varieties."
+  },
+  {
+    icon: Shield,
+    title: "APVMA Compliance",
+    description: "Treatment recommendations using only registered chemicals that comply with Australian biosecurity regulations."
+  },
+  {
+    icon: Smartphone,
+    title: "Mobile-First Design",
+    description: "Optimized for use in your garden with touch-friendly interface and offline diagnosis capabilities."
+  },
+  {
+    icon: Users,
+    title: "Community Network", 
+    description: "Connect with local gardeners, share success stories, and get alerts about pest outbreaks in your area."
+  },
+  {
+    icon: BarChart3,
+    title: "Health Dashboard",
+    description: "Track your plants' recovery progress over time with detailed analytics and treatment reminders."
+  },
+  {
+    icon: Globe,
+    title: "Australian Focus",
+    description: "Specifically trained on Australian climate zones, local suppliers, and state-specific regulations."
+  }
+];

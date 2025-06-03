@@ -12,28 +12,38 @@ import {
   Leaf, AlertCircle, Calendar, PlusCircle, Filter, SortDesc,
   CloudRain, Bug, Thermometer, AlertTriangle
 } from 'lucide-react';
-import { getUserDiagnoses, getWeatherAlerts } from '@/lib/firebase-utils';
+import { getUserDiagnoses, getWeatherAlerts, getDashboardAnalytics } from '@/lib/firebase-utils';
 import { PlantDiagnosis } from '@/lib/types';
 
 export default function DashboardPage() {
   const [diagnoses, setDiagnoses] = useState<PlantDiagnosis[]>([]);
   const [weatherAlerts, setWeatherAlerts] = useState<any[]>([]);
+  const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // In a real app, this would fetch from Firebase
-        const [diagnosesData, alertsData] = await Promise.all([
+        // Load real data from Firebase or fallback storage
+        const [diagnosesData, alertsData, analyticsData] = await Promise.all([
           getUserDiagnoses(),
-          getWeatherAlerts('4000') // Brisbane postcode as example
+          getWeatherAlerts('4000'), // Brisbane postcode as example
+          getDashboardAnalytics()
         ]);
+        
         setDiagnoses(diagnosesData);
         setWeatherAlerts(alertsData);
+        setAnalytics(analyticsData);
         setLoading(false);
+        
+        console.log('✅ Dashboard data loaded:', {
+          diagnoses: diagnosesData.length,
+          alerts: alertsData.length,
+          analytics: analyticsData
+        });
       } catch (err) {
-        console.error('Error fetching data:', err);
+        console.error('Error fetching dashboard data:', err);
         setError('Failed to load your plant diagnoses. Please try again.');
         setLoading(false);
       }

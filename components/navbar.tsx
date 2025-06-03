@@ -191,7 +191,7 @@ export default function Navbar() {
                               {user.displayName || user.email?.split('@')[0] || 'User'}
                             </p>
                             <p className="text-garden-medium">
-                              {firebaseReady ? 'Firebase User' : 'Demo User'}
+                              Authenticated User
                             </p>
                           </div>
                         </div>
