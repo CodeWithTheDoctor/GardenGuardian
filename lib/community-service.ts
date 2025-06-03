@@ -117,7 +117,7 @@ class CommunityService {
   /**
    * REAL: Create a new community post
    */
-  async createPost(postData: Omit<CommunityPost, 'id' | 'author' | 'likes' | 'comments' | 'views' | 'createdAt' | 'updatedAt'>): Promise<CommunityPost> {
+  async createPost(postData: Omit<CommunityPost, 'id' | 'author' | 'likes' | 'likedBy' | 'comments' | 'views' | 'createdAt' | 'updatedAt'>): Promise<CommunityPost> {
     try {
       const persistence = await this.getFirebasePersistence();
       
