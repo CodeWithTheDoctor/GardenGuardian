@@ -1,20 +1,62 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Leaf, Menu, X, User, Home, Camera, BarChart2, LogIn, Users } from 'lucide-react';
+import { Leaf, Menu, X, User, Home, Camera, BarChart2, LogIn, Users, Settings } from 'lucide-react';
+import { auth, isFirebaseConfigured } from '@/lib/firebase-config';
+import { onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Mock auth state
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const firebaseReady = isFirebaseConfigured();
+
+  // Listen to Firebase auth state changes
+  useEffect(() => {
+    if (!firebaseReady) {
+      // In demo mode, check localStorage
+      const demoUser = localStorage.getItem('demo-user');
+      if (demoUser) {
+        setUser({ displayName: JSON.parse(demoUser).name } as FirebaseUser);
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log('🔍 Auth state changed:', user ? user.uid : 'signed out');
+      setUser(user);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [firebaseReady]);
+
+  const handleSignOut = async () => {
+    try {
+      if (firebaseReady) {
+        await signOut(auth);
+        console.log('🔍 User signed out');
+      } else {
+        // Demo mode sign out
+        localStorage.removeItem('demo-user');
+        setUser(null);
+        console.log('🔍 Demo user signed out');
+      }
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
 
   const navLinks = [
     { name: 'Home', href: '/', icon: <Home className="h-5 w-5" /> },
     { name: 'Diagnose', href: '/diagnose', icon: <Camera className="h-5 w-5" /> },
     { name: 'Dashboard', href: '/dashboard', icon: <BarChart2 className="h-5 w-5" /> },
     { name: 'Community', href: '/community', icon: <Users className="h-5 w-5" /> },
+    { name: 'Config', href: '/config', icon: <Settings className="h-5 w-5" /> },
   ];
 
   return (
@@ -48,22 +90,36 @@ export default function Navbar() {
           </nav>
 
           <div className="flex items-center gap-2">
-            {isLoggedIn ? (
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="text-garden-dark hover:text-garden-medium hover:bg-garden-light/10"
-              >
-                <User className="h-5 w-5" />
-                <span className="sr-only">Profile</span>
-              </Button>
-            ) : (
+            {!isLoading && user ? (
+              <>
+                <span className="hidden sm:inline text-sm text-garden-medium">
+                  Welcome, {user.displayName || user.email?.split('@')[0] || 'User'}
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="text-garden-dark hover:text-garden-medium hover:bg-garden-light/10"
+                >
+                  <User className="h-5 w-5" />
+                  <span className="sr-only">Profile</span>
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={handleSignOut}
+                  className="hidden sm:flex border-garden-light text-garden-dark hover:bg-garden-light/10"
+                >
+                  Sign Out
+                </Button>
+              </>
+            ) : !isLoading ? (
               <Button asChild className="hidden sm:flex bg-garden-dark hover:bg-garden-medium text-white">
                 <Link href="/login">
                   <LogIn className="h-4 w-4 mr-2" />
                   Sign In
                 </Link>
               </Button>
+            ) : (
+              <div className="hidden sm:flex w-20 h-10 bg-gray-200 animate-pulse rounded"></div>
             )}
             
             {/* Mobile Menu Button */}
@@ -121,22 +177,35 @@ export default function Navbar() {
                   </div>
                   
                   <div className="p-4 border-t border-garden-light/20">
-                    {isLoggedIn ? (
-                      <div className="flex items-center justify-between">
+                    {!isLoading && user ? (
+                      <div className="space-y-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-garden-medium flex items-center justify-center">
-                            <span className="text-white text-xs font-medium">JD</span>
+                            <span className="text-white text-xs font-medium">
+                              {(user.displayName || user.email || 'U')[0].toUpperCase()}
+                            </span>
                           </div>
                           <div className="text-sm">
-                            <p className="font-medium text-garden-dark">Jane Doe</p>
-                            <p className="text-garden-medium">Brisbane, QLD</p>
+                            <p className="font-medium text-garden-dark">
+                              {user.displayName || user.email?.split('@')[0] || 'User'}
+                            </p>
+                            <p className="text-garden-medium">
+                              {firebaseReady ? 'Firebase User' : 'Demo User'}
+                            </p>
                           </div>
                         </div>
-                        <Button variant="outline" className="border-garden-light text-garden-dark">
-                          Logout
+                        <Button 
+                          variant="outline" 
+                          className="w-full border-garden-light text-garden-dark"
+                          onClick={() => {
+                            handleSignOut();
+                            setIsOpen(false);
+                          }}
+                        >
+                          Sign Out
                         </Button>
                       </div>
-                    ) : (
+                    ) : !isLoading ? (
                       <div className="flex flex-col gap-2">
                         <Button asChild className="w-full bg-garden-dark hover:bg-garden-medium text-white">
                           <Link href="/login" onClick={() => setIsOpen(false)}>
@@ -150,6 +219,8 @@ export default function Navbar() {
                           </Link>
                         </Button>
                       </div>
+                    ) : (
+                      <div className="w-full h-10 bg-gray-200 animate-pulse rounded"></div>
                     )}
                   </div>
                 </div>

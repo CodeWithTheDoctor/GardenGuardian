@@ -15,17 +15,7 @@ import { TreatmentRecommendations } from '@/components/treatment-recommendations
 import { getDiagnosisById } from '@/lib/firebase-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PlantDiagnosis } from '@/lib/types';
-
-// Generate static params for known diagnosis IDs
-export async function generateStaticParams() {
-  // In a real app, this would fetch all diagnosis IDs from your database
-  return [
-    { id: '1' },
-    { id: '2' },
-    { id: '3' },
-    { id: 'new-diagnosis-123' },
-  ];
-}
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function DiagnosisPage() {
   const { id } = useParams<{ id: string }>();
@@ -38,18 +28,22 @@ export default function DiagnosisPage() {
       try {
         if (typeof id !== 'string') return;
         
+        console.log('🔍 Fetching diagnosis for ID:', id);
         // In a real app, this would fetch from Firebase
         const diagnosisData = await getDiagnosisById(id);
+        console.log('🔍 Diagnosis data received:', diagnosisData);
         setDiagnosis(diagnosisData);
         setLoading(false);
       } catch (err) {
-        console.error('Error fetching diagnosis:', err);
+        console.error('🚨 Error fetching diagnosis:', err);
         setError('Failed to load diagnosis. Please try again.');
         setLoading(false);
       }
     };
     
-    fetchDiagnosis();
+    if (id) {
+      fetchDiagnosis();
+    }
   }, [id]);
   
   if (loading) {
@@ -100,6 +94,14 @@ export default function DiagnosisPage() {
             Back to Dashboard
           </Link>
         </div>
+
+        <Alert className="mb-6 bg-blue-50 border-blue-200">
+          <AlertTriangle className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-800">Prototype Results</AlertTitle>
+          <AlertDescription className="text-blue-700">
+            This diagnosis is generated from demonstration data. Production version will use real AI analysis.
+          </AlertDescription>
+        </Alert>
         
         {/* Diagnosis Result Card */}
         <Card className="mb-8 border-garden-light/30 overflow-hidden">

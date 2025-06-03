@@ -2,6 +2,7 @@
 // In a real app, these would interact with Firebase
 
 import { PlantDiagnosis, Treatment } from './types';
+import { analyzeImageWithVision } from './ai-vision';
 
 // Enhanced mock diagnoses data with more Australian-specific diseases
 const mockDiagnoses: PlantDiagnosis[] = [
@@ -186,15 +187,131 @@ export const uploadPlantImage = async (image: File): Promise<string> => {
 };
 
 // Simulate analyzing the image with AI
-export const analyzePlantImage = async (imageUrl: string): Promise<string> => {
-  return new Promise((resolve) => {
-    // Simulate AI processing delay
-    setTimeout(() => {
-      // Return a mock diagnosis ID
-      resolve('new-diagnosis-123');
-    }, 2000);
-  });
+export const analyzePlantImage = async (imageFile: File): Promise<string> => {
+  try {
+    // Use the new AI vision analysis
+    const visionResult = await analyzeImageWithVision(imageFile);
+    
+    // Create a more sophisticated diagnosis based on AI analysis
+    const diagnosisId = `diagnosis-${Date.now()}`;
+    
+    // Store the enhanced diagnosis (in production, this would go to Firebase)
+    const enhancedDiagnosis: PlantDiagnosis = {
+      id: diagnosisId,
+      userId: 'user123',
+      imageUrl: URL.createObjectURL(imageFile), // In demo mode, use object URL
+      diagnosis: {
+        disease: visionResult.suggestedDiseases[0] || 'Unknown Plant Issue',
+        confidence: visionResult.confidence,
+        severity: visionResult.confidence > 95 ? 'severe' : 
+                  visionResult.confidence > 85 ? 'moderate' : 'mild',
+        description: `AI analysis detected plant health concerns with ${visionResult.confidence}% confidence. ${visionResult.plantDiseaseDetected ? 'Disease indicators found in image.' : 'No clear disease indicators detected.'}`,
+        metadata: {
+          aiLabels: visionResult.labels.slice(0, 5),
+          detectedObjects: visionResult.objects,
+          analysisTimestamp: new Date().toISOString()
+        }
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      treated: false,
+      treatments: getRelevantTreatments(visionResult.suggestedDiseases[0])
+    };
+    
+    console.log('🔍 Storing diagnosis with key:', diagnosisId);
+    console.log('🔍 Diagnosis data:', enhancedDiagnosis);
+    
+    // In demo mode, store in sessionStorage for immediate retrieval
+    // Don't double-prefix the key since diagnosisId already includes 'diagnosis-'
+    sessionStorage.setItem(diagnosisId, JSON.stringify(enhancedDiagnosis));
+    
+    return diagnosisId;
+  } catch (error) {
+    console.error('AI analysis error:', error);
+    
+    // Fallback to original mock behavior
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve('new-diagnosis-123');
+      }, 2000);
+    });
+  }
 };
+
+// Get relevant treatments based on diagnosed disease
+function getRelevantTreatments(disease?: string): Treatment[] {
+  if (!disease) return australianTreatments.slice(0, 2);
+  
+  // Map diseases to appropriate treatments
+  const treatmentMap: { [key: string]: Treatment[] } = {
+    'Tomato Leaf Spot (Septoria)': [
+      {
+        id: 'tls1',
+        name: 'Copper Hydroxide Fungicide',
+        type: 'chemical',
+        instructions: [
+          'Mix 2g per 1L water',
+          'Spray every 10-14 days',
+          'Cover all leaf surfaces thoroughly',
+          'Apply preventatively to healthy plants'
+        ],
+        cost: 18,
+        apvmaNumber: 'APVMA 67890',
+        suppliers: ['Bunnings', 'Garden City', 'Rural Stores'],
+        safetyWarnings: [
+          'Wear gloves and eye protection',
+          'Do not apply in windy conditions',
+          'Toxic to fish - avoid water contamination'
+        ],
+        webPurchaseLinks: ['https://www.bunnings.com.au/search/products?q=copper+hydroxide']
+      }
+    ],
+    'Rose Aphid Infestation': [
+      {
+        id: 'ra1',
+        name: 'Pyrethrum Insecticide',
+        type: 'organic',
+        instructions: [
+          'Spray directly on aphids',
+          'Apply in early morning or evening',
+          'Repeat every 3-5 days if needed',
+          'Target undersides of leaves'
+        ],
+        cost: 14,
+        suppliers: ['Bunnings', 'Independent Garden Centres'],
+        safetyWarnings: [
+          'Toxic to bees - do not spray flowering plants',
+          'Keep away from waterways'
+        ],
+        webPurchaseLinks: ['https://www.bunnings.com.au/search/products?q=pyrethrum+spray']
+      }
+    ],
+    'Citrus Canker': [
+      {
+        id: 'cc1',
+        name: 'Copper-based Bactericide',
+        type: 'chemical',
+        instructions: [
+          'IMPORTANT: Citrus canker is a notifiable disease',
+          'Contact Department of Agriculture immediately',
+          'Do not move infected plant material',
+          'Professional treatment may be required'
+        ],
+        cost: 0,
+        apvmaNumber: 'Restricted Use',
+        suppliers: ['Agricultural Consultants Only'],
+        safetyWarnings: [
+          'This is a serious exotic disease',
+          'Legal requirements apply',
+          'Professional assessment required'
+        ],
+        webPurchaseLinks: []
+      }
+    ]
+  };
+  
+  return treatmentMap[disease] || australianTreatments.slice(0, 2);
+}
 
 // Simulate getting all diagnoses for a user
 export const getUserDiagnoses = async (userId?: string): Promise<PlantDiagnosis[]> => {
@@ -212,11 +329,32 @@ export const getDiagnosisById = async (id: string): Promise<PlantDiagnosis> => {
   return new Promise((resolve, reject) => {
     // Simulate network delay
     setTimeout(() => {
+      console.log('🔍 Looking for diagnosis with ID:', id);
+      
+      // First check sessionStorage for AI-generated diagnoses
+      const sessionKey = id.startsWith('diagnosis-') ? id : `diagnosis-${id}`;
+      const sessionDiagnosis = sessionStorage.getItem(sessionKey);
+      console.log('🔍 Checking sessionStorage with key:', sessionKey);
+      
+      if (sessionDiagnosis) {
+        console.log('🔍 Found diagnosis in sessionStorage');
+        try {
+          const parsed = JSON.parse(sessionDiagnosis);
+          resolve(parsed);
+          return;
+        } catch (parseError) {
+          console.error('🚨 Error parsing sessionStorage diagnosis:', parseError);
+        }
+      }
+      
+      // Check mock diagnoses
       const diagnosis = mockDiagnoses.find((d) => d.id === id);
       
       if (diagnosis) {
+        console.log('🔍 Found diagnosis in mock data');
         resolve(diagnosis);
       } else if (id === 'new-diagnosis-123') {
+        console.log('🔍 Returning fallback diagnosis');
         // Return a new diagnosis for the demo
         resolve({
           id: 'new-diagnosis-123',
@@ -273,6 +411,7 @@ export const getDiagnosisById = async (id: string): Promise<PlantDiagnosis> => {
           ]
         });
       } else {
+        console.error('🚨 Diagnosis not found for ID:', id);
         reject(new Error('Diagnosis not found'));
       }
     }, 1000);

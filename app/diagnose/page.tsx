@@ -22,13 +22,23 @@ export default function DiagnosePage() {
   // Reset media stream when component unmounts
   useEffect(() => {
     return () => {
+      console.log('🔍 Component unmounting, cleaning up camera...');
+      closeCamera();
+    };
+  }, []);
+
+  // Ensure camera is cleaned up when isCameraOpen changes
+  useEffect(() => {
+    if (!isCameraOpen) {
+      // Make sure everything is cleaned up when camera is closed
       if (videoRef.current?.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
         const tracks = stream.getTracks();
         tracks.forEach((track) => track.stop());
+        videoRef.current.srcObject = null;
       }
-    };
-  }, []);
+    }
+  }, [isCameraOpen]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -59,7 +69,22 @@ export default function DiagnosePage() {
 
   const openCamera = async () => {
     setError(null);
+    console.log('🔍 Opening camera...');
+    
     try {
+      // Check if camera is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not supported in this browser');
+      }
+
+      // Check permissions first
+      try {
+        const permissions = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        console.log('🔍 Camera permission status:', permissions.state);
+      } catch (permErr) {
+        console.log('🔍 Permission query not supported, continuing...');
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment', // Use back camera when available
@@ -68,15 +93,70 @@ export default function DiagnosePage() {
         }
       });
       
+      console.log('🔍 Camera stream obtained:', stream);
+      console.log('🔍 Video tracks:', stream.getVideoTracks());
+      
+      // Set camera open first to render the video element
+      setIsCameraOpen(true);
+      
+      // Wait a bit for React to render the video element
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       if (videoRef.current) {
+        console.log('🔍 Setting video source...');
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        
+        // Wait for the video to be ready
+        videoRef.current.onloadedmetadata = () => {
+          console.log('🔍 Video metadata loaded');
+          console.log('🔍 Video dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
+          if (videoRef.current) {
+            videoRef.current.play().catch(err => {
+              console.error('🚨 Video play error:', err);
+            });
+          }
+        };
+        
+        videoRef.current.oncanplay = () => {
+          console.log('🔍 Video can play');
+        };
+        
+        videoRef.current.onerror = (err) => {
+          console.error('🚨 Video error:', err);
+        };
+      } else {
+        console.error('🚨 Video ref is still null after waiting');
+        // Store the stream to try again
+        (window as any).pendingStream = stream;
+        
+        // Try again after a longer delay
+        setTimeout(() => {
+          if (videoRef.current && (window as any).pendingStream) {
+            console.log('🔍 Retry: Setting video source...');
+            videoRef.current.srcObject = (window as any).pendingStream;
+            videoRef.current.play();
+            delete (window as any).pendingStream;
+          }
+        }, 500);
       }
       
-      setIsCameraOpen(true);
-    } catch (err) {
-      setError('Camera access failed. Please check permissions or try uploading a photo instead.');
-      console.error('Camera error:', err);
+      console.log('🔍 Camera opened successfully');
+    } catch (err: any) {
+      console.error('🚨 Camera error:', err);
+      
+      let errorMessage = 'Camera access failed. ';
+      if (err.name === 'NotAllowedError') {
+        errorMessage += 'Please allow camera permissions and try again.';
+      } else if (err.name === 'NotFoundError') {
+        errorMessage += 'No camera found on this device.';
+      } else if (err.name === 'NotSupportedError') {
+        errorMessage += 'Camera not supported in this browser.';
+      } else {
+        errorMessage += 'Please check permissions or try uploading a photo instead.';
+      }
+      
+      setError(errorMessage);
+      setIsCameraOpen(false);
     }
   };
 
@@ -118,12 +198,36 @@ export default function DiagnosePage() {
   };
 
   const closeCamera = () => {
+    console.log('🔍 Closing camera...');
+    
+    // Stop the video element first
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.srcObject = null;
+    }
+    
+    // Stop all media tracks
     if (videoRef.current?.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
       const tracks = stream.getTracks();
-      tracks.forEach((track) => track.stop());
+      
+      console.log('🔍 Stopping tracks:', tracks.length);
+      tracks.forEach((track) => {
+        console.log('🔍 Stopping track:', track.kind, track.label);
+        track.stop();
+      });
     }
+    
+    // Also check for any pending streams
+    if ((window as any).pendingStream) {
+      console.log('🔍 Stopping pending stream...');
+      const tracks = (window as any).pendingStream.getTracks();
+      tracks.forEach((track: MediaStreamTrack) => track.stop());
+      delete (window as any).pendingStream;
+    }
+    
     setIsCameraOpen(false);
+    console.log('🔍 Camera closed');
   };
 
   const handleSubmit = async () => {
@@ -136,15 +240,14 @@ export default function DiagnosePage() {
     setError(null);
     
     try {
-      // In a real app, this would upload to Firebase and call the AI service
-      const imageUrl = await uploadPlantImage(image);
-      const diagnosisId = await analyzePlantImage(imageUrl);
+      // Pass the file directly to the AI analysis function
+      const diagnosisId = await analyzePlantImage(image);
       
       // Navigate to the results page with the diagnosis ID
       router.push(`/diagnosis/${diagnosisId}`);
     } catch (err) {
       setError('Failed to analyze your plant. Please try again.');
-      console.error('Upload error:', err);
+      console.error('Analysis error:', err);
       setIsUploading(false);
     }
   };
@@ -152,6 +255,14 @@ export default function DiagnosePage() {
   return (
     <div className="min-h-screen bg-garden-cream px-4 py-12">
       <div className="max-w-3xl mx-auto">
+        <Alert className="mb-6 bg-blue-50 border-blue-200">
+          <AlertCircle className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-800">Prototype Notice</AlertTitle>
+          <AlertDescription className="text-blue-700">
+            This is a demonstration using simulated AI. Production version will integrate real plant disease recognition technology.
+          </AlertDescription>
+        </Alert>
+
         <h1 className="text-3xl md:text-4xl font-bold text-garden-dark text-center mb-6">
           Diagnose Your Plant
         </h1>
@@ -202,13 +313,20 @@ export default function DiagnosePage() {
           )}
 
           {isCameraOpen && (
-            <div className="relative">
+            <div className="relative bg-black">
               <video
                 ref={videoRef}
-                className="w-full aspect-video object-cover"
+                className="w-full aspect-video object-cover bg-gray-900"
                 playsInline
                 autoPlay
+                muted
+                style={{ minHeight: '300px' }}
               />
+              
+              {/* Video status indicator */}
+              <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                ● LIVE
+              </div>
               
               <div className="absolute inset-x-0 bottom-0 p-4 flex justify-center space-x-4 bg-black/30">
                 <Button 

@@ -7,6 +7,17 @@ export interface PlantDiagnosis {
     confidence: number;
     severity: 'mild' | 'moderate' | 'severe';
     description: string;
+    metadata?: {
+      aiLabels?: Array<{
+        description: string;
+        score: number;
+      }>;
+      detectedObjects?: Array<{
+        name: string;
+        score: number;
+      }>;
+      analysisTimestamp?: string;
+    };
   };
   createdAt: string | Date;
   updatedAt: string | Date;

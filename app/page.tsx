@@ -2,31 +2,61 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Leaf, Bug, Droplets, Sun, Upload, Clock } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Leaf, Bug, Droplets, Sun, Upload, Clock, InfoIcon } from 'lucide-react';
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-garden-cream">
+      {/* Bolt.new Badge - Required for hackathon */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <Link 
+          href="https://bolt.new/" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="block hover:scale-105 transition-transform duration-200"
+        >
+          <Image
+            src="/images/bolt-badge.png"
+            alt="Powered by Bolt.new"
+            width={80}
+            height={80}
+            className="w-16 h-16 md:w-20 md:h-20 drop-shadow-lg"
+            priority
+          />
+        </Link>
+      </div>
+
       {/* Hero Section */}
       <section className="py-12 md:py-20">
         <div className="container mx-auto px-4">
+          <Alert className="mb-8 bg-blue-50 border-blue-200 max-w-4xl mx-auto">
+            <InfoIcon className="h-4 w-4 text-blue-600" />
+            <AlertTitle className="text-blue-800">Prototype Demonstration</AlertTitle>
+            <AlertDescription className="text-blue-700">
+              This is a high-fidelity prototype showcasing the user experience for an AI-powered plant health platform. 
+              UI/UX is production-ready, with simulated AI responses for demonstration purposes.
+            </AlertDescription>
+          </Alert>
+
           <div className="flex flex-col lg:flex-row items-center gap-12">
             <div className="lg:w-1/2 text-center lg:text-left">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-garden-dark mb-6 leading-tight">
                 Your AI-Powered <br />Garden Health Detective
+                <span className="text-lg md:text-xl text-blue-600 block mt-2 font-normal">(Prototype)</span>
               </h1>
               <p className="text-lg md:text-xl text-garden-medium mb-8 max-w-2xl">
-                Instantly diagnose plant diseases & pests and get Australian-compliant treatments tailored to your garden.
+                Experience how gardeners will instantly diagnose plant diseases & pests and get Australian-compliant treatments tailored to their garden.
               </p>
               <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
                 <Button asChild size="lg" className="bg-garden-dark hover:bg-garden-medium text-white px-8 py-6 rounded-lg text-lg">
                   <Link href="/diagnose">
-                    Diagnose Your Plant
+                    Try the Demo
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="border-garden-medium text-garden-dark hover:bg-garden-light/20">
                   <Link href="/dashboard">
-                    View Dashboard
+                    View Features
                   </Link>
                 </Button>
               </div>
