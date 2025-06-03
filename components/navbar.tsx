@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Leaf, Menu, X, User, Home, Camera, BarChart2, LogIn, Users, Settings } from 'lucide-react';
+import { Leaf, Menu, X, User, Home, Camera, BarChart2, LogIn, Users, Settings, Shield } from 'lucide-react';
 import { auth, isFirebaseConfigured } from '@/lib/firebase-config';
 import { onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
 
@@ -56,6 +56,7 @@ export default function Navbar() {
     { name: 'Diagnose', href: '/diagnose', icon: <Camera className="h-5 w-5" /> },
     { name: 'Dashboard', href: '/dashboard', icon: <BarChart2 className="h-5 w-5" /> },
     { name: 'Community', href: '/community', icon: <Users className="h-5 w-5" /> },
+    { name: 'Compliance', href: '/compliance', icon: <Shield className="h-5 w-5" /> },
     { name: 'Config', href: '/config', icon: <Settings className="h-5 w-5" /> },
   ];
 
