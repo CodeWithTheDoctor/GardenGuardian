@@ -82,6 +82,18 @@ npm run build
 npm start
 ```
 
+## 📚 Documentation
+
+Comprehensive documentation is organized in the [`docs/`](./docs/) folder:
+
+- **[Testing Guide](./docs/testing/)** - Complete testing infrastructure with Vitest + Cypress
+- **[Project Planning](./docs/planning/)** - Strategy, roadmaps, and business plans  
+- **[Status & Implementation](./docs/status/)** - Current progress and achievements
+- **[Demo Materials](./docs/demo/)** - Presentation scripts and demo preparation
+- **[Technical Architecture](./docs/architecture/)** - System design and architecture
+
+📖 **[Full Documentation Index](./docs/README.md)** - Start here for complete navigation
+
 ## 🏗️ Tech Stack
 
 - **Frontend**: Next.js 15, TypeScript, Tailwind CSS
