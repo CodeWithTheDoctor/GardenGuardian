@@ -71,10 +71,24 @@ export default function DiagnosePage() {
   // Clean up camera when camera state changes
   useEffect(() => {
     if (!isCameraOpen) {
+      // Get stream reference before clearing
+      let stream: MediaStream | null = null;
       if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
+        stream = videoRef.current.srcObject as MediaStream;
+      }
+      
+      // Stop all tracks
+      if (stream) {
         const tracks = stream.getTracks();
-        tracks.forEach((track) => track.stop());
+        console.log('🔍 useEffect cleanup: Stopping tracks:', tracks.length);
+        tracks.forEach((track) => {
+          console.log('🔍 useEffect cleanup: Stopping track:', track.kind);
+          track.stop();
+        });
+      }
+      
+      // Clear video source
+      if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
     }
@@ -230,20 +244,23 @@ export default function DiagnosePage() {
   const closeCamera = () => {
     console.log('🔍 Closing camera...');
     
-    // Stop the video element first
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.srcObject = null;
+    // Get the stream reference BEFORE clearing srcObject
+    let stream: MediaStream | null = null;
+    if (videoRef.current?.srcObject) {
+      stream = videoRef.current.srcObject as MediaStream;
     }
     
-    // Stop all media tracks
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
+    // Stop the video element
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
+    
+    // Stop all media tracks from the stream
+    if (stream) {
       const tracks = stream.getTracks();
-      
       console.log('🔍 Stopping tracks:', tracks.length);
       tracks.forEach((track) => {
-        console.log('🔍 Stopping track:', track.kind, track.label);
+        console.log('🔍 Stopping track:', track.kind, track.label, 'readyState:', track.readyState);
         track.stop();
       });
     }
@@ -251,13 +268,21 @@ export default function DiagnosePage() {
     // Also check for any pending streams
     if ((window as any).pendingStream) {
       console.log('🔍 Stopping pending stream...');
-      const tracks = (window as any).pendingStream.getTracks();
-      tracks.forEach((track: MediaStreamTrack) => track.stop());
+      const pendingTracks = (window as any).pendingStream.getTracks();
+      pendingTracks.forEach((track: MediaStreamTrack) => {
+        console.log('🔍 Stopping pending track:', track.kind, track.label);
+        track.stop();
+      });
       delete (window as any).pendingStream;
     }
     
+    // Clear the video source AFTER stopping tracks
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    
     setIsCameraOpen(false);
-    console.log('🔍 Camera closed');
+    console.log('🔍 Camera closed and all tracks stopped');
   };
 
   const handleAnalyze = async () => {
