@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { getUserDiagnoses, getWeatherAlerts, getDashboardAnalytics } from '@/lib/firebase-utils';
 import { PlantDiagnosis } from '@/lib/types';
+import { ServiceErrorDisplay } from '@/components/ui/service-error';
+import { ConfigurationError } from '@/lib/error-handling';
 
 export default function DashboardPage() {
   const [diagnoses, setDiagnoses] = useState<PlantDiagnosis[]>([]);
@@ -21,6 +23,7 @@ export default function DashboardPage() {
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [configError, setConfigError] = useState<ConfigurationError | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,7 +47,13 @@ export default function DashboardPage() {
         });
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
-        setError('Failed to load your plant diagnoses. Please try again.');
+        
+        // Check if this is a configuration error
+        if (err instanceof ConfigurationError) {
+          setConfigError(err);
+        } else {
+          setError('Failed to load your plant diagnoses. Please try again.');
+        }
         setLoading(false);
       }
     };
@@ -59,6 +68,30 @@ export default function DashboardPage() {
 
   if (loading) {
     return <DashboardSkeleton />;
+  }
+
+  if (configError) {
+    return (
+      <div className="min-h-screen bg-garden-cream px-4 py-12">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-garden-dark mb-4">
+              Garden Health Dashboard
+            </h1>
+            <p className="text-garden-medium">
+              Track, monitor, and manage all your plant health issues
+            </p>
+          </div>
+          
+          <ServiceErrorDisplay 
+            error={configError}
+            variant="card"
+            showRetry={true}
+            onRetry={() => window.location.reload()}
+          />
+        </div>
+      </div>
+    );
   }
 
   if (error) {

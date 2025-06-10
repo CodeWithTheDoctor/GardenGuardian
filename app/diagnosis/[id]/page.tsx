@@ -134,11 +134,17 @@ export default function DiagnosisPage() {
   // Convert confidence to progress value
   const confidenceValue = Math.round(confidence);
   
-  // Determine severity color
-  const severityColor = 
+  // Check if this is a healthy plant
+  const isHealthyPlant = disease.includes('Healthy') || disease.includes('No Issues Detected') || diagnosis.treated === true;
+  
+  // Determine severity color and status
+  const severityColor = isHealthyPlant ? 'text-green-600' :
     severity === 'severe' ? 'text-garden-alert' :
     severity === 'moderate' ? 'text-yellow-600' : 
     'text-garden-light';
+    
+  const statusBadgeText = isHealthyPlant ? 'Healthy' : severity.charAt(0).toUpperCase() + severity.slice(1);
+  const categoryBadgeText = isHealthyPlant ? 'Plant Health' : 'Plant Disease';
 
   return (
     <motion.div 
@@ -214,12 +220,12 @@ export default function DiagnosisPage() {
                   
                   <div className="flex flex-wrap items-center gap-2 mb-4">
                     <Badge variant="outline" className={`${severityColor} border-current text-xs md:text-sm`}>
-                      {severity.charAt(0).toUpperCase() + severity.slice(1)}
+                      {statusBadgeText}
                     </Badge>
                     
-                    <Badge variant="outline" className="border-garden-medium text-garden-medium text-xs md:text-sm">
+                    <Badge variant="outline" className={`${isHealthyPlant ? "border-green-600 text-green-600" : "border-garden-medium text-garden-medium"} text-xs md:text-sm`}>
                       <Leaf className="h-3 w-3 mr-1" />
-                      Plant Disease
+                      {categoryBadgeText}
                     </Badge>
                   </div>
                   
@@ -324,22 +330,41 @@ export default function DiagnosisPage() {
             </Button>
           </motion.div>
           
-          <motion.div 
-            className="flex-1"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Button 
-              variant="outline" 
-              className="border-garden-medium text-garden-dark w-full text-sm md:text-base"
-              onClick={() => {
-                console.log('Mark as treated');
-              }}
+          {!isHealthyPlant && (
+            <motion.div 
+              className="flex-1"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              <Check className="h-4 w-4 mr-2" />
-              Mark as Treated
-            </Button>
-          </motion.div>
+              <Button 
+                variant="outline" 
+                className="border-garden-medium text-garden-dark w-full text-sm md:text-base"
+                onClick={() => {
+                  console.log('Mark as treated');
+                }}
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Mark as Treated
+              </Button>
+            </motion.div>
+          )}
+          
+          {isHealthyPlant && (
+            <motion.div 
+              className="flex-1"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Button 
+                variant="outline" 
+                className="border-green-600 text-green-600 w-full text-sm md:text-base cursor-default"
+                disabled
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Plant is Healthy
+              </Button>
+            </motion.div>
+          )}
         </motion.div>
       </div>
     </motion.div>

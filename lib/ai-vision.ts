@@ -15,6 +15,7 @@ interface VisionAnalysisResult {
   plantDiseaseDetected: boolean;
   suggestedDiseases: string[];
   confidence: number;
+  isHealthyPlant?: boolean;
 }
 
 // Mock Australian plant diseases for demonstration
@@ -101,8 +102,16 @@ function processVisionResults(annotations: any): VisionAnalysisResult {
     label.description.toLowerCase().includes('plant') ||
     label.description.toLowerCase().includes('leaf') ||
     label.description.toLowerCase().includes('flower') ||
-    label.description.toLowerCase().includes('disease') ||
-    label.description.toLowerCase().includes('pest')
+    label.description.toLowerCase().includes('tree') ||
+    label.description.toLowerCase().includes('vegetation')
+  );
+
+  // Look for healthy plant indicators
+  const healthyIndicators = labels.filter((label: any) =>
+    label.description.toLowerCase().includes('green') ||
+    label.description.toLowerCase().includes('healthy') ||
+    label.description.toLowerCase().includes('fresh') ||
+    label.description.toLowerCase().includes('vibrant')
   );
 
   // Analyze for potential diseases based on visual indicators
@@ -111,12 +120,19 @@ function processVisionResults(annotations: any): VisionAnalysisResult {
     label.description.toLowerCase().includes('spot') ||
     label.description.toLowerCase().includes('yellow') ||
     label.description.toLowerCase().includes('wilted') ||
-    label.description.toLowerCase().includes('damaged')
+    label.description.toLowerCase().includes('damaged') ||
+    label.description.toLowerCase().includes('disease') ||
+    label.description.toLowerCase().includes('pest') ||
+    label.description.toLowerCase().includes('blight') ||
+    label.description.toLowerCase().includes('fungus') ||
+    label.description.toLowerCase().includes('rot')
   );
 
-  const plantDiseaseDetected = plantLabels.length > 0 && diseaseIndicators.length > 0;
+  // Determine if this is a healthy plant or has disease issues
+  const isHealthyPlant = plantLabels.length > 0 && healthyIndicators.length > 0 && diseaseIndicators.length === 0;
+  const plantDiseaseDetected = plantLabels.length > 0 && diseaseIndicators.length > 0 && !isHealthyPlant;
   
-  // Generate suggested diseases based on Australian context
+  // Generate suggested diseases based on Australian context (only if disease detected)
   const suggestedDiseases = plantDiseaseDetected 
     ? AUSTRALIAN_PLANT_DISEASES.slice(0, Math.floor(Math.random() * 3) + 1)
     : [];
@@ -137,7 +153,8 @@ function processVisionResults(annotations: any): VisionAnalysisResult {
     })),
     plantDiseaseDetected,
     suggestedDiseases,
-    confidence: Math.round(avgConfidence * 100)
+    confidence: Math.round(avgConfidence * 100),
+    isHealthyPlant
   };
 }
 
