@@ -1,4 +1,5 @@
 import { isFirebaseConfigured } from './firebase-config';
+import { COMMUNITY_ERRORS, throwConfigurationError } from './error-handling';
 
 export interface CommunityUser {
   id: string;
@@ -121,35 +122,18 @@ class CommunityService {
     try {
       const persistence = await this.getFirebasePersistence();
       
-      if (persistence && persistence.isAuthenticated) {
-        // Production mode - use real Firebase
-        return await persistence.createCommunityPost(postData);
-      } else {
-        // Demo mode - use enhanced sessionStorage
-        const post: CommunityPost = {
-          ...postData,
-          id: `post_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          author: await this.getUserProfile(postData.authorId),
-          likes: 0,
-          likedBy: [],
-          comments: [],
-          views: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          featured: false,
-          moderated: false
-        };
-
-        const existingPosts = JSON.parse(sessionStorage.getItem('community_posts') || '[]');
-        existingPosts.unshift(post);
-        sessionStorage.setItem('community_posts', JSON.stringify(existingPosts));
-        
-        // Mark that we now have real posts (not just mock data)
-        sessionStorage.setItem('has_real_posts', 'true');
-        console.log('📝 Community post created in demo mode');
-        
-        return post;
+      if (!persistence) {
+        console.error('Firebase not configured - cannot create community post');
+        throwConfigurationError(COMMUNITY_ERRORS.NOT_CONFIGURED);
       }
+      
+      if (!persistence.isAuthenticated) {
+        console.error('User not authenticated - cannot create community post');
+        throwConfigurationError(COMMUNITY_ERRORS.AUTH_REQUIRED);
+      }
+      
+      // Production mode - use real Firebase
+      return await persistence.createCommunityPost(postData);
     } catch (error) {
       console.error('Error creating community post:', error);
       throw error;
@@ -170,53 +154,21 @@ class CommunityService {
     try {
       const persistence = await this.getFirebasePersistence();
       
-      if (persistence && persistence.isAuthenticated) {
-        // Production mode - use real Firebase
-        return await persistence.getCommunityPosts(filters);
-      } else {
-        // Demo mode - use sessionStorage first, then mock data as fallback
-        const sessionPosts = JSON.parse(sessionStorage.getItem('community_posts') || '[]');
-        
-        // If user has created posts, show only those + existing session posts
-        if (sessionPosts.length > 0) {
-          console.log('📝 Loaded community posts from session storage:', sessionPosts.length);
-          
-          // Apply filters to session posts
-          let filteredPosts = sessionPosts;
-          if (filters.type) {
-            filteredPosts = filteredPosts.filter((p: CommunityPost) => p.type === filters.type);
-          }
-          if (filters.location) {
-            filteredPosts = filteredPosts.filter((p: CommunityPost) => 
-              p.location?.state === filters.location || 
-              p.author.location.state === filters.location
-            );
-          }
-          
-          return filteredPosts.slice(0, filters.limit || 20);
-        } else {
-          // No session posts, show mock data for demo purposes
-          const mockPosts = this.getMockPosts();
-          console.log('📝 Loaded mock community posts for demo');
-          
-          // Apply filters to mock posts
-          let filteredPosts = mockPosts;
-          if (filters.type) {
-            filteredPosts = filteredPosts.filter(p => p.type === filters.type);
-          }
-          if (filters.location) {
-            filteredPosts = filteredPosts.filter(p => 
-              p.location?.state === filters.location || 
-              p.author.location.state === filters.location
-            );
-          }
-          
-          return filteredPosts.slice(0, filters.limit || 20);
-        }
+      if (!persistence) {
+        console.error('Firebase not configured - cannot load community posts');
+        throwConfigurationError(COMMUNITY_ERRORS.NOT_CONFIGURED);
       }
+      
+      if (!persistence.isAuthenticated) {
+        console.error('User not authenticated - cannot load community posts');
+        throwConfigurationError(COMMUNITY_ERRORS.AUTH_REQUIRED);
+      }
+      
+      // Production mode - use real Firebase
+      return await persistence.getCommunityPosts(filters);
     } catch (error) {
       console.error('Error loading community posts:', error);
-      return this.getMockPosts();
+      throw error;
     }
   }
 

@@ -7,14 +7,17 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, AlertCircle, Database, Camera, Cpu, Globe, Shield, BarChart3 } from 'lucide-react';
 import { isFirebaseConfigured, isAnalyticsConfigured } from '@/lib/firebase-config';
 import { isVisionAPIConfigured, getAIConfigurationStatus } from '@/lib/ai-vision';
+import { ServiceErrorDisplay } from '@/components/ui/service-error';
+import { FIREBASE_ERRORS, AI_VISION_ERRORS } from '@/lib/error-handling';
 import Link from 'next/link';
 
 interface ConfigItem {
   name: string;
   description: string;
-  status: 'ready' | 'configured' | 'demo' | 'missing';
+  status: 'ready' | 'configured' | 'error' | 'missing';
   icon: React.ReactNode;
   details: string[];
+  error?: any;
 }
 
 export default function ConfigPage() {
@@ -27,20 +30,22 @@ export default function ConfigPage() {
     {
       name: 'Firebase Backend',
       description: 'Authentication, Database & Storage',
-      status: firebaseReady ? 'configured' : 'demo',
+      status: firebaseReady ? 'configured' : 'error',
       icon: <Database className="h-5 w-5" />,
       details: firebaseReady 
         ? ['✅ Firebase SDK integrated', '✅ Auth configuration ready', '✅ Firestore database ready', '✅ Cloud Storage ready']
-        : ['🔧 Firebase SDK integrated', '⚠️ Demo mode (no API keys)', '📋 Production config ready', '🧪 Local storage fallback']
+        : ['❌ Firebase not configured', '🔧 Environment variables missing', '📋 See error details below'],
+      error: !firebaseReady ? FIREBASE_ERRORS.NOT_CONFIGURED : undefined
     },
     {
       name: 'AI Vision System',
       description: 'Plant disease recognition engine',
-      status: visionReady ? 'configured' : 'demo',
+      status: visionReady ? 'configured' : 'error',
       icon: <Cpu className="h-5 w-5" />,
       details: visionReady
         ? ['✅ Google Vision API active', '✅ Image processing pipeline', '✅ Australian disease mapping', '✅ Confidence scoring']
-        : ['🔧 Google Vision API integrated', '⚠️ Enhanced mock analysis active', '📋 Australian disease database ready', '🧪 Deterministic demo responses']
+        : ['❌ Google Vision API not configured', '🔧 API key missing', '📋 See error details below'],
+      error: !visionReady ? AI_VISION_ERRORS.NOT_CONFIGURED : undefined
     },
     {
       name: 'Camera Integration',
@@ -59,9 +64,9 @@ export default function ConfigPage() {
     {
       name: 'Australian Compliance',
       description: 'APVMA & regulatory integration',
-      status: 'demo',
+      status: 'ready',
       icon: <Shield className="h-5 w-5" />,
-      details: ['🔧 APVMA data structure ready', '⚠️ Mock compliance checking', '📋 State restriction mapping', '🧪 Bunnings/Mitre 10 links demo']
+      details: ['✅ APVMA government API integrated', '✅ Real chemical registration data', '✅ State restriction mapping', '✅ Direct compliance checking']
     },
     {
       name: 'Analytics & Monitoring',
@@ -78,7 +83,7 @@ export default function ConfigPage() {
     switch (status) {
       case 'ready': return 'bg-green-100 text-green-800 border-green-200';
       case 'configured': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'demo': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'error': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'missing': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -88,7 +93,7 @@ export default function ConfigPage() {
     switch (status) {
       case 'ready': return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'configured': return <CheckCircle className="h-4 w-4 text-blue-600" />;
-      case 'demo': return <AlertCircle className="h-4 w-4 text-yellow-600" />;
+      case 'error': return <AlertCircle className="h-4 w-4 text-yellow-600" />;
       case 'missing': return <XCircle className="h-4 w-4 text-red-600" />;
       default: return <AlertCircle className="h-4 w-4 text-gray-600" />;
     }
@@ -96,7 +101,7 @@ export default function ConfigPage() {
 
   const readyCount = configurations.filter(c => c.status === 'ready').length;
   const configuredCount = configurations.filter(c => c.status === 'configured').length;
-  const demoCount = configurations.filter(c => c.status === 'demo').length;
+  const errorCount = configurations.filter(c => c.status === 'error').length;
   const missingCount = configurations.filter(c => c.status === 'missing').length;
 
   return (
@@ -104,10 +109,10 @@ export default function ConfigPage() {
       <div className="max-w-4xl mx-auto px-4 space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold text-gray-900">System Configuration Status</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Configuration Status</h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Technical overview of GardenGuardian AI's current implementation state and production readiness.
-            This demonstrates our architectural planning and integration capabilities.
+            Real-time status of all services and environment variables. Clear error messages guide you through 
+            the setup process to enable full functionality.
           </p>
         </div>
 
@@ -133,8 +138,8 @@ export default function ConfigPage() {
                 <div className="text-sm text-blue-700">API Configured</div>
               </div>
               <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                <div className="text-2xl font-bold text-yellow-600">{demoCount}</div>
-                <div className="text-sm text-yellow-700">Demo Mode</div>
+                <div className="text-2xl font-bold text-yellow-600">{errorCount}</div>
+                <div className="text-sm text-yellow-700">Configuration Errors</div>
               </div>
               <div className="text-center p-4 bg-red-50 rounded-lg">
                 <div className="text-2xl font-bold text-red-600">{missingCount}</div>
@@ -250,6 +255,15 @@ export default function ConfigPage() {
                     </div>
                   ))}
                 </div>
+                {config.error && (
+                  <div className="mt-4">
+                    <ServiceErrorDisplay 
+                      error={config.error}
+                      variant="inline"
+                      showRetry={false}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}

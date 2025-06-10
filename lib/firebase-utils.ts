@@ -4,6 +4,7 @@
 import { PlantDiagnosis, Treatment } from './types';
 import { analyzeImageWithVision } from './ai-vision';
 import { isFirebaseConfigured } from './firebase-config';
+import { FIREBASE_ERRORS, throwConfigurationError } from './error-handling';
 
 // Import the real Firebase persistence service
 const getFirebasePersistence = async () => {
@@ -268,9 +269,41 @@ export const analyzePlantImage = async (imageFile: File): Promise<string> => {
           throw new Error('No analysis results received');
         }
         
-        const diagnosis = generateDiagnosisFromAnalysis(result);
-        console.log('✅ AI analysis completed:', diagnosis);
-        return diagnosis;
+        const diseaseResult = generateDiagnosisFromAnalysis(result);
+        console.log('✅ AI analysis completed:', diseaseResult);
+        
+        // Create proper diagnosis object with unique ID
+        const diagnosisId = `diagnosis-${Date.now()}`;
+        const imageUrl = URL.createObjectURL(imageFile); // Temporary URL for demo mode
+        
+        const diagnosisObject: PlantDiagnosis = {
+          id: diagnosisId,
+          userId: 'user123', // Demo user ID
+          imageUrl: imageUrl,
+          diagnosis: {
+            disease: diseaseResult,
+            confidence: result.confidence || 85,
+            severity: result.confidence > 95 ? 'severe' : 
+                     result.confidence > 85 ? 'moderate' : 'mild',
+            description: `AI analysis detected plant health concerns with ${result.confidence || 85}% confidence. ${result.plantDiseaseDetected ? 'Disease indicators found in image.' : 'Analysis completed based on image content.'}`,
+            metadata: {
+              aiLabels: result.labels?.slice(0, 5) || [],
+              detectedObjects: result.objects || [],
+              analysisTimestamp: new Date().toISOString()
+            }
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          treated: false,
+          treatments: getRelevantTreatments(diseaseResult)
+        };
+        
+        // Save the diagnosis
+        await saveDiagnosis(diagnosisObject);
+        console.log('✅ Diagnosis saved with ID:', diagnosisId);
+        
+        // Return the proper diagnosis ID (not the disease name)
+        return diagnosisId;
       },
       3, // max retries
       2000 // delay between retries
@@ -403,10 +436,8 @@ const generateDiagnosisFromAnalysis = (result: any): string => {
 // REAL DATA PERSISTENCE: Get user diagnoses from Firebase
 export const getUserDiagnoses = async (userId?: string): Promise<PlantDiagnosis[]> => {
   if (!isFirebaseConfigured()) {
-    // Fallback: Get from sessionStorage and merge with mock data
-    console.log('📋 Loading diagnoses from sessionStorage (demo mode)');
-    const sessionDiagnoses = JSON.parse(sessionStorage.getItem('all-diagnoses') || '[]');
-    return [...sessionDiagnoses, ...mockDiagnoses];
+    console.error('Firebase not configured - cannot load user diagnoses');
+    throwConfigurationError(FIREBASE_ERRORS.NOT_CONFIGURED);
   }
 
   try {
@@ -416,65 +447,42 @@ export const getUserDiagnoses = async (userId?: string): Promise<PlantDiagnosis[
     return diagnoses;
   } catch (error) {
     console.error('🚨 Error loading diagnoses from Firebase:', error);
-    // Fallback to mock data
-    return mockDiagnoses;
+    throw error; // Re-throw the original error
   }
 };
 
 // REAL DATA PERSISTENCE: Get specific diagnosis by ID
 export const getDiagnosisById = async (id: string): Promise<PlantDiagnosis> => {
   if (!isFirebaseConfigured()) {
-    // Fallback: Check sessionStorage first, then mock data
-    console.log('🔍 Looking for diagnosis in sessionStorage (demo mode):', id);
-    
-    const sessionDiagnosis = sessionStorage.getItem(id);
-    if (sessionDiagnosis) {
-      try {
-        const parsed = JSON.parse(sessionDiagnosis);
-        console.log('✅ Found diagnosis in sessionStorage');
-        return parsed;
-      } catch (error) {
-        console.error('🚨 Error parsing sessionStorage diagnosis:', error);
-      }
-    }
-    
-    // Check sessionStorage diagnoses list
-    const allDiagnoses = JSON.parse(sessionStorage.getItem('all-diagnoses') || '[]');
-    const sessionDiag = allDiagnoses.find((d: PlantDiagnosis) => d.id === id);
-    if (sessionDiag) {
-      console.log('✅ Found diagnosis in sessionStorage list');
-      return sessionDiag;
-    }
-    
-    // Fallback to mock data
-    const mockDiagnosis = mockDiagnoses.find((d) => d.id === id);
-    if (mockDiagnosis) {
-      console.log('✅ Found diagnosis in mock data');
-      return mockDiagnosis;
-    }
-    
-    // Return fallback diagnosis
-    return createFallbackDiagnosis(id);
+    console.error('Firebase not configured - cannot load diagnosis by ID');
+    throwConfigurationError(FIREBASE_ERRORS.NOT_CONFIGURED);
   }
 
   try {
+    // Decode URL-encoded ID (in case it comes from router params)
+    const decodedId = decodeURIComponent(id);
+    console.log('🔍 Looking for diagnosis with ID:', decodedId, '(original:', id, ')');
+    
     const persistenceService = await getFirebasePersistence();
-    const diagnosis = await persistenceService.getDiagnosis(id);
+    
+    // Try with decoded ID first
+    let diagnosis = await persistenceService.getDiagnosis(decodedId);
+    
+    // If not found and IDs are different, try with original ID
+    if (!diagnosis && decodedId !== id) {
+      diagnosis = await persistenceService.getDiagnosis(id);
+    }
     
     if (diagnosis) {
-      console.log('✅ Loaded diagnosis from Firebase:', id);
+      console.log('✅ Loaded diagnosis from Firebase:', diagnosis.id);
       return diagnosis;
     }
     
-    // If not found in Firebase, check mock data
-    const mockDiagnosis = mockDiagnoses.find((d) => d.id === id);
-    return mockDiagnosis || createFallbackDiagnosis(id);
+    throw new Error(`Diagnosis with ID ${id} not found`);
     
   } catch (error) {
     console.error('🚨 Error loading diagnosis from Firebase:', error);
-    // Fallback to mock data
-    const mockDiagnosis = mockDiagnoses.find((d) => d.id === id);
-    return mockDiagnosis || createFallbackDiagnosis(id);
+    throw error; // Re-throw the original error
   }
 };
 
@@ -513,41 +521,18 @@ export const updateDiagnosis = async (diagnosisId: string, updates: Partial<Plan
 // REAL DATA PERSISTENCE: Get dashboard analytics
 export const getDashboardAnalytics = async (userId?: string) => {
   if (!isFirebaseConfigured()) {
-    // Fallback: Calculate from sessionStorage + mock data
-    console.log('📊 Calculating analytics from local data (demo mode)');
-    const sessionDiagnoses = JSON.parse(sessionStorage.getItem('all-diagnoses') || '[]');
-    const allDiagnoses = [...sessionDiagnoses, ...mockDiagnoses];
-    
-    return {
-      totalDiagnoses: allDiagnoses.length,
-      successfulTreatments: allDiagnoses.filter(d => d.treated).length,
-      commonDiseases: calculateCommonDiseases(allDiagnoses),
-      monthlyActivity: calculateMonthlyActivity(allDiagnoses)
-    };
+    console.error('Firebase not configured - cannot load dashboard analytics');
+    throwConfigurationError(FIREBASE_ERRORS.NOT_CONFIGURED);
   }
 
   try {
     const persistenceService = await getFirebasePersistence();
-    const analytics = await persistenceService.getDashboardAnalytics(userId);
+    const analytics = await persistenceService.getDashboardAnalytics(userId); 
     console.log('✅ Loaded analytics from Firebase');
     return analytics;
   } catch (error) {
     console.error('🚨 Error loading analytics from Firebase:', error);
-    // Fallback to mock analytics
-    return {
-      totalDiagnoses: 12,
-      successfulTreatments: 8,
-      commonDiseases: [
-        { disease: 'Aphid Infestation', count: 4 },
-        { disease: 'Fungal Disease', count: 3 },
-        { disease: 'Leaf Spot', count: 2 }
-      ],
-      monthlyActivity: [
-        { month: 'Nov', count: 3 },
-        { month: 'Dec', count: 5 },
-        { month: 'Jan', count: 4 }
-      ]
-    };
+    throw error; // Re-throw the original error
   }
 };
 

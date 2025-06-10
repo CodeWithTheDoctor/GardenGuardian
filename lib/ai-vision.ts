@@ -1,6 +1,8 @@
 // Google Vision API Integration for Plant Disease Detection
 // This demonstrates real AI integration capability
 
+import { AI_VISION_ERRORS, throwConfigurationError } from './error-handling';
+
 interface VisionAnalysisResult {
   labels: Array<{
     description: string;
@@ -34,8 +36,8 @@ export async function analyzeImageWithVision(imageFile: File): Promise<VisionAna
   const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_VISION_API_KEY;
   
   if (!API_KEY) {
-    console.log('Google Vision API key not provided - using enhanced mock analysis');
-    return generateEnhancedMockAnalysis(imageFile);
+    console.error('Google Vision API key not configured');
+    throwConfigurationError(AI_VISION_ERRORS.NOT_CONFIGURED);
   }
 
   try {
@@ -73,8 +75,19 @@ export async function analyzeImageWithVision(imageFile: File): Promise<VisionAna
     
   } catch (error) {
     console.error('Google Vision API error:', error);
-    console.log('Falling back to enhanced mock analysis');
-    return generateEnhancedMockAnalysis(imageFile);
+    
+    // Check for specific API errors
+    if (error instanceof Error) {
+      if (error.message.includes('quota') || error.message.includes('QUOTA_EXCEEDED')) {
+        throwConfigurationError(AI_VISION_ERRORS.API_QUOTA_EXCEEDED);
+      }
+      if (error.message.includes('invalid') || error.message.includes('INVALID_IMAGE')) {
+        throwConfigurationError(AI_VISION_ERRORS.INVALID_IMAGE);
+      }
+    }
+    
+    // Re-throw the original error
+    throw error;
   }
 }
 
@@ -128,38 +141,10 @@ function processVisionResults(annotations: any): VisionAnalysisResult {
   };
 }
 
-// Enhanced mock analysis for demonstration (more sophisticated than simple random)
-function generateEnhancedMockAnalysis(imageFile: File): VisionAnalysisResult {
-  // Use file properties to create consistent "analysis"
-  const fileName = imageFile.name.toLowerCase();
-  const fileSize = imageFile.size;
-  
-  // Create deterministic but varied results based on file characteristics
-  const seed = fileName.length + (fileSize % 1000);
-  const diseaseIndex = seed % AUSTRALIAN_PLANT_DISEASES.length;
-  
-  // Simulate realistic label detection
-  const mockLabels = [
-    { description: 'Plant', score: 0.95 },
-    { description: 'Leaf', score: 0.89 },
-    { description: 'Green', score: 0.82 },
-    { description: fileName.includes('spot') ? 'Spot' : 'Disease', score: 0.76 },
-    { description: 'Garden', score: 0.71 }
-  ];
-
-  const mockObjects = [
-    { name: 'Plant', score: 0.91 },
-    { name: 'Leaf', score: 0.85 }
-  ];
-
-  return {
-    labels: mockLabels,
-    objects: mockObjects,
-    plantDiseaseDetected: true,
-    suggestedDiseases: [AUSTRALIAN_PLANT_DISEASES[diseaseIndex]],
-    confidence: Math.round(85 + (seed % 15)) // 85-99% confidence
-  };
-}
+// Check if Google Vision API is configured
+export const isVisionAPIConfigured = (): boolean => {
+  return !!process.env.NEXT_PUBLIC_GOOGLE_VISION_API_KEY;
+};
 
 // Helper function to convert File to base64
 function fileToBase64(file: File): Promise<string> {
@@ -171,18 +156,13 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-// Check if Google Vision API is configured
-export const isVisionAPIConfigured = (): boolean => {
-  return !!process.env.NEXT_PUBLIC_GOOGLE_VISION_API_KEY;
-};
-
 // Get configuration status for UI display
 export const getAIConfigurationStatus = () => {
   return {
     visionAPI: isVisionAPIConfigured(),
-    mockMode: !isVisionAPIConfigured(),
+    configured: isVisionAPIConfigured(),
     message: isVisionAPIConfigured() 
       ? 'Using Google Vision API for real plant analysis'
-      : 'Using enhanced mock analysis for demonstration'
+      : 'Google Vision API not configured - plant analysis unavailable'
   };
 }; 

@@ -388,17 +388,22 @@ class FirebasePersistenceService {
   async recordDiagnosisAnalytics(diagnosis: PlantDiagnosis): Promise<void> {
     if (!this.currentUser) return;
 
-    const analytics: DiagnosisAnalytics = {
+    const analytics: Partial<DiagnosisAnalytics> = {
       id: `analytics_${diagnosis.id}`,
       userId: diagnosis.userId,
       diagnosisId: diagnosis.id,
       disease: diagnosis.diagnosis.disease,
       confidence: diagnosis.diagnosis.confidence,
-      location: this.userProfile?.location?.postcode,
       timestamp: new Date().toISOString()
     };
 
-    await setDoc(doc(db, 'analytics', analytics.id), {
+    // Only include location if it exists (Firebase doesn't allow undefined values)
+    const userLocation = this.userProfile?.location?.postcode;
+    if (userLocation) {
+      analytics.location = userLocation;
+    }
+
+    await setDoc(doc(db, 'analytics', analytics.id!), {
       ...analytics,
       timestamp: serverTimestamp()
     });

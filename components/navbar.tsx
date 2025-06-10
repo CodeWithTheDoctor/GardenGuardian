@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Leaf, Menu, X, User, Home, Camera, BarChart2, LogIn, Users, Settings, Shield } from 'lucide-react';
+import { Leaf, Menu, X, User, Home, Camera, BarChart2, LogIn, Users, Settings, Shield, AlertTriangle } from 'lucide-react';
 import { auth, isFirebaseConfigured } from '@/lib/firebase-config';
 import { onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
 
