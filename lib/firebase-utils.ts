@@ -183,7 +183,7 @@ const australianTreatments: Treatment[] = [
   }
 ];
 
-// REAL DATA PERSISTENCE: Upload image to Firebase Storage or provide base64 fallback
+// REAL DATA PERSISTENCE: Upload image via API route or provide base64 fallback
 export const uploadPlantImage = async (image: File): Promise<string> => {
   if (!isFirebaseConfigured()) {
     // Fallback: Convert to base64 data URL for demo mode (works in production)
@@ -206,15 +206,31 @@ export const uploadPlantImage = async (image: File): Promise<string> => {
     // Compress image before upload for better performance
     const compressedImage = await compressImage(image);
     
-    const persistenceService = await getFirebasePersistence();
+    // Use Next.js API route for server-side upload
     const diagnosisId = `img-${Date.now()}`;
-    const imageUrl = await persistenceService.uploadDiagnosisImage(compressedImage, diagnosisId);
-    console.log('✅ Image uploaded to Firebase Storage:', imageUrl);
-    return imageUrl;
-  } catch (error) {
-    console.error('🚨 Error uploading image to Firebase Storage:', error);
+    const formData = new FormData();
+    formData.append('file', compressedImage);
+    formData.append('diagnosisId', diagnosisId);
+    formData.append('userId', 'demo-user-001'); // Use consistent demo user ID
     
-    // Fallback to base64 if Firebase upload fails
+    const response = await fetch('/api/upload-image', {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Upload failed');
+    }
+    
+    const result = await response.json();
+    console.log('✅ Image uploaded via API route:', result.imageUrl);
+    return result.imageUrl;
+    
+  } catch (error) {
+    console.error('🚨 Error uploading image via API route:', error);
+    
+    // Fallback to base64 if API upload fails
     console.log('💾 Falling back to base64 conversion');
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
