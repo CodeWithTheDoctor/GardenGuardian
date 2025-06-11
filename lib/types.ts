@@ -7,6 +7,8 @@ export interface PlantDiagnosis {
     confidence: number;
     severity: 'mild' | 'moderate' | 'severe';
     description: string;
+    plantHealth?: 'healthy' | 'diseased' | 'stressed' | 'unknown';
+    additionalNotes?: string;
     metadata?: {
       aiLabels?: Array<{
         description: string;
@@ -17,6 +19,7 @@ export interface PlantDiagnosis {
         score: number;
       }>;
       analysisTimestamp?: string;
+      geminiAnalysis?: boolean;
     };
   };
   createdAt: string | Date;
@@ -28,7 +31,7 @@ export interface PlantDiagnosis {
 export interface Treatment {
   id: string;
   name: string;
-  type: 'organic' | 'chemical' | 'cultural';
+  type: 'organic' | 'chemical' | 'cultural' | 'biological';
   instructions: string[];
   cost: number;
   apvmaNumber?: string; // Australian compliance

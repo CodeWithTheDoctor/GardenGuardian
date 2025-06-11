@@ -16,6 +16,8 @@ import { getUserDiagnoses, getWeatherAlerts, getDashboardAnalytics } from '@/lib
 import { PlantDiagnosis } from '@/lib/types';
 import { ServiceErrorDisplay } from '@/components/ui/service-error';
 import { ConfigurationError } from '@/lib/error-handling';
+import { auth, isFirebaseConfigured } from '@/lib/firebase-config';
+import { onAuthStateChanged, User } from 'firebase/auth';
 
 export default function DashboardPage() {
   const [diagnoses, setDiagnoses] = useState<PlantDiagnosis[]>([]);
@@ -24,15 +26,61 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [configError, setConfigError] = useState<ConfigurationError | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  
+  const firebaseReady = isFirebaseConfigured();
 
+  // Listen for authentication state changes
   useEffect(() => {
+    if (!firebaseReady) {
+      // In demo mode, check localStorage for demo user
+      const demoUser = localStorage.getItem('demo-user');
+      if (demoUser) {
+        const userData = JSON.parse(demoUser);
+        setCurrentUser({ uid: userData.id, email: userData.email } as User);
+      }
+      setAuthLoading(false);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log('🔍 Auth state changed in dashboard:', user ? user.uid : 'signed out');
+      setCurrentUser(user);
+      setAuthLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [firebaseReady]);
+
+  // Fetch dashboard data when user is authenticated
+  useEffect(() => {
+    if (authLoading) return; // Wait for auth to resolve
+
     const fetchData = async () => {
       try {
-        // Load real data from Firebase or fallback storage
+        // Get user ID - either from authenticated user or demo user
+        let userId: string | undefined;
+        
+        if (firebaseReady && currentUser) {
+          userId = currentUser.uid;
+          console.log('🔍 Using authenticated user ID:', userId);
+        } else if (!firebaseReady && currentUser) {
+          userId = currentUser.uid; // Demo user ID
+          console.log('🔍 Using demo user ID:', userId);
+        } else {
+          // No user logged in - show authentication prompt
+          console.log('🔍 No user authenticated - prompting for login');
+          setError('Please log in to view your plant diagnoses.');
+          setLoading(false);
+          return;
+        }
+
+        // Load user-specific data
         const [diagnosesData, alertsData, analyticsData] = await Promise.all([
-          getUserDiagnoses(),
+          getUserDiagnoses(userId), // Pass the actual user ID
           getWeatherAlerts('4000'), // Brisbane postcode as example
-          getDashboardAnalytics()
+          getDashboardAnalytics(userId) // Pass the actual user ID
         ]);
         
         setDiagnoses(diagnosesData);
@@ -40,7 +88,7 @@ export default function DashboardPage() {
         setAnalytics(analyticsData);
         setLoading(false);
         
-        console.log('✅ Dashboard data loaded:', {
+        console.log('✅ Dashboard data loaded for user:', userId, {
           diagnoses: diagnosesData.length,
           alerts: alertsData.length,
           analytics: analyticsData
@@ -59,14 +107,14 @@ export default function DashboardPage() {
     };
     
     fetchData();
-  }, []);
+  }, [currentUser, authLoading, firebaseReady]);
 
   // In a real app, we'd filter these based on the selected tab
   const recentDiagnoses = diagnoses;
   const criticalDiagnoses = diagnoses.filter(d => d.diagnosis.severity === 'severe');
   const treatedDiagnoses = diagnoses.filter(d => d.treated);
 
-  if (loading) {
+  if (loading || authLoading) {
     return <DashboardSkeleton />;
   }
 
@@ -95,20 +143,36 @@ export default function DashboardPage() {
   }
 
   if (error) {
+    const isAuthError = error.includes('log in') || error.includes('authenticate');
+    
     return (
       <div className="min-h-screen bg-garden-cream px-4 py-12">
         <div className="max-w-6xl mx-auto text-center">
           <AlertCircle className="h-16 w-16 text-garden-alert mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-garden-dark mb-4">
-            Error Loading Dashboard
+            {isAuthError ? 'Authentication Required' : 'Error Loading Dashboard'}
           </h1>
           <p className="text-garden-medium mb-8">{error}</p>
-          <Button 
-            onClick={() => window.location.reload()} 
-            className="bg-garden-dark hover:bg-garden-medium text-white"
-          >
-            Try Again
-          </Button>
+          
+          <div className="flex gap-4 justify-center">
+            {isAuthError ? (
+              <>
+                <Button asChild className="bg-garden-dark hover:bg-garden-medium text-white">
+                  <Link href="/login">Log In</Link>
+                </Button>
+                <Button asChild variant="outline" className="border-garden-dark text-garden-dark hover:bg-garden-dark hover:text-white">
+                  <Link href="/register">Create Account</Link>
+                </Button>
+              </>
+            ) : (
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="bg-garden-dark hover:bg-garden-medium text-white"
+              >
+                Try Again
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     );

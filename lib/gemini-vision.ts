@@ -1,0 +1,230 @@
+// Gemini 2.0 Flash Integration for Intelligent Plant Health Analysis
+// Replaces Google Vision API with advanced AI plant diagnostics
+
+import { GEMINI_VISION_ERRORS, throwConfigurationError } from './error-handling';
+
+export interface GeminiAnalysisResult {
+  plantHealth: 'healthy' | 'diseased' | 'stressed' | 'unknown';
+  diagnosis: string;
+  confidence: number;
+  severity: 'mild' | 'moderate' | 'severe';
+  description: string;
+  treatmentRecommendations: AustralianTreatment[];
+  additionalNotes?: string;
+  analysisTimestamp: string;
+}
+
+export interface AustralianTreatment {
+  name: string;
+  type: 'organic' | 'chemical' | 'cultural' | 'biological';
+  description: string;
+  application: string;
+  timing: string;
+  cost: string;
+  availability: string;
+  safetyNotes: string;
+  bunningsAvailable: boolean;
+}
+
+// Gemini API integration for plant health analysis
+export async function analyzeImageWithGemini(imageFile: File): Promise<GeminiAnalysisResult> {
+  const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  
+  if (!API_KEY) {
+    console.error('Gemini API key not configured');
+    throwConfigurationError(GEMINI_VISION_ERRORS.NOT_CONFIGURED);
+  }
+
+  try {
+    // Convert image to base64
+    const base64Image = await fileToBase64(imageFile);
+    const imageData = base64Image.split(',')[1]; // Remove data URL prefix
+
+    console.log('📸 Sending image to Gemini 2.0 Flash for analysis...');
+
+    const prompt = `You are an expert Australian plant pathologist and horticulturist. Analyze this plant image and provide a comprehensive health assessment.
+
+IMPORTANT: Focus specifically on Australian growing conditions, climate zones, and treatments available at Australian retailers like Bunnings.
+
+Please provide your analysis in the following JSON format:
+
+{
+  "plantHealth": "healthy|diseased|stressed|unknown",
+  "diagnosis": "Primary condition or disease name",
+  "confidence": number (0-100),
+  "severity": "mild|moderate|severe",
+  "description": "Detailed description of what you observe and the plant's condition",
+  "treatmentRecommendations": [
+    {
+      "name": "Treatment name",
+      "type": "organic|chemical|cultural|biological",
+      "description": "What this treatment does",
+      "application": "How to apply it",
+      "timing": "When to apply",
+      "cost": "Estimated cost in AUD",
+      "availability": "Where to buy in Australia",
+      "safetyNotes": "Important safety information",
+      "bunningsAvailable": true/false
+    }
+  ],
+  "additionalNotes": "Any additional observations or care recommendations"
+}
+
+Guidelines:
+- Be specific about Australian plant diseases and pests
+- Recommend treatments available at Bunnings or other Australian retailers
+- Consider Australian climate zones and growing seasons
+- Include APVMA-approved chemicals where relevant
+- Provide both organic and chemical options when possible
+- Be conservative with confidence scores - only use 90%+ for very clear cases
+- If the plant appears healthy, suggest preventive care
+- Consider common Australian garden plants and their specific issues`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            {
+              text: prompt
+            },
+            {
+              inline_data: {
+                mime_type: imageFile.type,
+                data: imageData
+              }
+            }
+          ]
+        }],
+        generationConfig: {
+          temperature: 0.4, // Lower temperature for more consistent medical advice
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 8192,
+        },
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH", 
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Gemini API error:', response.status, errorData);
+      throw new Error(`Gemini API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('🤖 Raw Gemini response:', data);
+
+    // Extract the generated content
+    const generatedContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!generatedContent) {
+      throw new Error('No content generated by Gemini');
+    }
+
+    console.log('📝 Generated content:', generatedContent);
+
+    // Parse the JSON response from Gemini
+    let analysisResult: GeminiAnalysisResult;
+    
+    try {
+      // Extract JSON from the response (in case there's additional text)
+      const jsonMatch = generatedContent.match(/\{[\s\S]*\}/);
+      const jsonString = jsonMatch ? jsonMatch[0] : generatedContent;
+      
+      const parsedResult = JSON.parse(jsonString);
+      
+      analysisResult = {
+        ...parsedResult,
+        analysisTimestamp: new Date().toISOString()
+      };
+      
+    } catch (parseError) {
+      console.error('Error parsing Gemini response:', parseError);
+      console.log('Raw content:', generatedContent);
+      
+      // Fallback parsing if JSON parsing fails
+      analysisResult = {
+        plantHealth: 'unknown',
+        diagnosis: 'Analysis completed',
+        confidence: 75,
+        severity: 'mild',
+        description: generatedContent.substring(0, 500) + '...',
+        treatmentRecommendations: [],
+        additionalNotes: 'Analysis result required manual parsing',
+        analysisTimestamp: new Date().toISOString()
+      };
+    }
+
+    console.log('✅ Processed Gemini analysis:', analysisResult);
+    return analysisResult;
+    
+  } catch (error) {
+    console.error('Gemini Vision API error:', error);
+    
+    // Check for specific API errors
+    if (error instanceof Error) {
+      if (error.message.includes('quota') || error.message.includes('QUOTA_EXCEEDED')) {
+        throwConfigurationError(GEMINI_VISION_ERRORS.API_QUOTA_EXCEEDED);
+      }
+      if (error.message.includes('invalid') || error.message.includes('INVALID_IMAGE')) {
+        throwConfigurationError(GEMINI_VISION_ERRORS.INVALID_IMAGE);
+      }
+    }
+    
+    // Re-throw the original error
+    throw error;
+  }
+}
+
+// Check if Gemini API is configured
+export const isGeminiAPIConfigured = (): boolean => {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  console.log('🔧 Gemini API Config Check:', {
+    hasApiKey: !!apiKey,
+    keyLength: apiKey?.length || 0,
+    keyPrefix: apiKey?.substring(0, 8) + '...' || 'none'
+  });
+  return !!apiKey;
+};
+
+// Helper function to convert File to base64
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+}
+
+// Get configuration status for UI display
+export const getGeminiConfigurationStatus = () => {
+  return {
+    geminiAPI: isGeminiAPIConfigured(),
+    configured: isGeminiAPIConfigured(),
+    message: isGeminiAPIConfigured() 
+      ? 'Using Gemini 2.0 Flash for intelligent plant health analysis with Australian treatment recommendations'
+      : 'Gemini API not configured - intelligent plant analysis unavailable'
+  };
+}; 

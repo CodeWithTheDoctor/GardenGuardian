@@ -49,7 +49,7 @@ export const FIREBASE_ERRORS = {
   }
 } as const;
 
-// AI Vision Configuration Errors
+// AI Vision Configuration Errors (Legacy Google Vision)
 export const AI_VISION_ERRORS = {
   NOT_CONFIGURED: {
     code: 'AI_VISION_NOT_CONFIGURED',
@@ -69,6 +69,41 @@ export const AI_VISION_ERRORS = {
     title: 'Invalid Image',
     message: 'The uploaded image could not be processed for plant analysis.',
     action: 'Please upload a clear, well-lit photo of the plant showing the problem area.'
+  }
+} as const;
+
+// Gemini Vision Configuration Errors (New Gemini 2.0 Flash)
+export const GEMINI_VISION_ERRORS = {
+  NOT_CONFIGURED: {
+    code: 'GEMINI_VISION_NOT_CONFIGURED',
+    title: 'Gemini AI Not Configured',
+    message: 'Gemini 2.0 Flash API is not configured. Intelligent plant health analysis is unavailable.',
+    action: 'Please configure Gemini API key to enable AI-powered plant diagnosis with Australian treatment recommendations.',
+    configRequired: ['NEXT_PUBLIC_GEMINI_API_KEY']
+  },
+  API_QUOTA_EXCEEDED: {
+    code: 'GEMINI_API_QUOTA_EXCEEDED',
+    title: 'API Quota Exceeded',
+    message: 'Gemini API quota has been exceeded for today.',
+    action: 'Please try again tomorrow or upgrade your API plan.'
+  },
+  INVALID_IMAGE: {
+    code: 'GEMINI_INVALID_IMAGE',
+    title: 'Invalid Image',
+    message: 'The uploaded image could not be processed for plant health analysis.',
+    action: 'Please upload a clear, well-lit photo of the plant showing the problem area.'
+  },
+  CONTENT_FILTERED: {
+    code: 'GEMINI_CONTENT_FILTERED',
+    title: 'Content Filtered',
+    message: 'The image content was filtered by safety policies.',
+    action: 'Please upload a different image of your plant.'
+  },
+  PARSE_ERROR: {
+    code: 'GEMINI_PARSE_ERROR',
+    title: 'Analysis Parsing Error',
+    message: 'Unable to parse the AI analysis response.',
+    action: 'Please try uploading the image again.'
   }
 } as const;
 

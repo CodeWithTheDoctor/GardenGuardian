@@ -6,9 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, AlertCircle, Database, Camera, Cpu, Globe, Shield, BarChart3 } from 'lucide-react';
 import { isFirebaseConfigured, isAnalyticsConfigured } from '@/lib/firebase-config';
-import { isVisionAPIConfigured, getAIConfigurationStatus } from '@/lib/ai-vision';
+import { isGeminiAPIConfigured, getGeminiConfigurationStatus } from '@/lib/gemini-vision';
 import { ServiceErrorDisplay } from '@/components/ui/service-error';
-import { FIREBASE_ERRORS, AI_VISION_ERRORS } from '@/lib/error-handling';
+import { FIREBASE_ERRORS, GEMINI_VISION_ERRORS } from '@/lib/error-handling';
 import Link from 'next/link';
 
 interface ConfigItem {
@@ -22,9 +22,9 @@ interface ConfigItem {
 
 export default function ConfigPage() {
   const firebaseReady = isFirebaseConfigured();
-  const visionReady = isVisionAPIConfigured();
+  const geminiReady = isGeminiAPIConfigured();
   const analyticsReady = isAnalyticsConfigured();
-  const aiStatus = getAIConfigurationStatus();
+  const aiStatus = getGeminiConfigurationStatus();
 
   const configurations: ConfigItem[] = [
     {
@@ -38,14 +38,14 @@ export default function ConfigPage() {
       error: !firebaseReady ? FIREBASE_ERRORS.NOT_CONFIGURED : undefined
     },
     {
-      name: 'AI Vision System',
-      description: 'Plant disease recognition engine',
-      status: visionReady ? 'configured' : 'error',
+      name: 'Gemini AI System',
+      description: 'Intelligent plant health analysis',
+      status: geminiReady ? 'configured' : 'error',
       icon: <Cpu className="h-5 w-5" />,
-      details: visionReady
-        ? ['✅ Google Vision API active', '✅ Image processing pipeline', '✅ Australian disease mapping', '✅ Confidence scoring']
-        : ['❌ Google Vision API not configured', '🔧 API key missing', '📋 See error details below'],
-      error: !visionReady ? AI_VISION_ERRORS.NOT_CONFIGURED : undefined
+      details: geminiReady
+        ? ['✅ Gemini 2.0 Flash API active', '✅ AI-powered plant diagnosis', '✅ Australian treatment recommendations', '✅ Intelligent health assessment']
+        : ['❌ Gemini 2.0 Flash not configured', '🔧 API key missing', '📋 See error details below'],
+      error: !geminiReady ? GEMINI_VISION_ERRORS.NOT_CONFIGURED : undefined
     },
     {
       name: 'Camera Integration',
@@ -154,18 +154,18 @@ export default function ConfigPage() {
           <Cpu className="h-4 w-4" />
           <AlertDescription>
             <strong>AI Status:</strong> {aiStatus.message}
-            {!aiStatus.visionAPI && (
+            {!aiStatus.geminiAPI && (
               <span className="ml-2 text-xs">
-                (Add NEXT_PUBLIC_GOOGLE_VISION_API_KEY to enable real AI analysis)
+                (Add NEXT_PUBLIC_GEMINI_API_KEY to enable intelligent plant analysis)
               </span>
             )}
           </AlertDescription>
         </Alert>
 
-        {/* Debug Firebase Configuration */}
+        {/* Debug Configuration */}
         <Card className="border-orange-200 bg-orange-50">
           <CardHeader>
-            <CardTitle className="text-orange-800">🔧 Debug: Firebase Configuration</CardTitle>
+            <CardTitle className="text-orange-800">🔧 Debug: Environment Configuration</CardTitle>
             <CardDescription className="text-orange-700">
               Environment variable status (for troubleshooting)
             </CardDescription>
@@ -173,6 +173,7 @@ export default function ConfigPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="space-y-2">
+                <h4 className="font-semibold text-orange-800">Firebase Variables</h4>
                 <div className="flex items-center justify-between">
                   <span>FIREBASE_API_KEY:</span>
                   <Badge variant={process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? "default" : "destructive"}>
@@ -191,8 +192,6 @@ export default function ConfigPage() {
                     {process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? "✅ Set" : "❌ Missing"}
                   </Badge>
                 </div>
-              </div>
-              <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span>FIREBASE_STORAGE_BUCKET:</span>
                   <Badge variant={process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ? "default" : "destructive"}>
@@ -212,14 +211,37 @@ export default function ConfigPage() {
                   </Badge>
                 </div>
               </div>
+              <div className="space-y-2">
+                <h4 className="font-semibold text-orange-800">AI & External APIs</h4>
+                <div className="flex items-center justify-between">
+                  <span>GEMINI_API_KEY:</span>
+                  <Badge variant={process.env.NEXT_PUBLIC_GEMINI_API_KEY ? "default" : "destructive"}>
+                    {process.env.NEXT_PUBLIC_GEMINI_API_KEY ? "✅ Set" : "❌ Missing"}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>OPENWEATHER_API_KEY:</span>
+                  <Badge variant={process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY ? "default" : "destructive"}>
+                    {process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY ? "✅ Set" : "❌ Missing"}
+                  </Badge>
+                </div>
+                {process.env.NEXT_PUBLIC_GEMINI_API_KEY && (
+                  <div className="text-xs text-orange-700 bg-orange-100 p-2 rounded mt-2">
+                    Gemini API Key: {process.env.NEXT_PUBLIC_GEMINI_API_KEY.substring(0, 8)}...
+                    (Length: {process.env.NEXT_PUBLIC_GEMINI_API_KEY.length} chars)
+                  </div>
+                )}
+              </div>
             </div>
             
-            {!firebaseReady && (
+            {(!firebaseReady || !geminiReady) && (
               <Alert className="mt-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Configuration Issue:</strong> Some Firebase environment variables are missing. 
-                  Make sure your .env file has all required NEXT_PUBLIC_FIREBASE_* variables and restart the dev server.
+                  <strong>Configuration Issues Detected:</strong>
+                  {!firebaseReady && <div>• Firebase environment variables missing. Add all NEXT_PUBLIC_FIREBASE_* variables.</div>}
+                  {!geminiReady && <div>• Gemini 2.0 Flash API key missing. Add NEXT_PUBLIC_GEMINI_API_KEY.</div>}
+                  <div className="mt-2 text-xs">Restart the development server after adding environment variables.</div>
                 </AlertDescription>
               </Alert>
             )}
@@ -282,14 +304,14 @@ export default function ConfigPage() {
               <h4 className="font-medium text-gray-900">Immediate Priority (Week 1-2):</h4>
               <ul className="text-gray-600 space-y-1">
                 <li>Set up Firebase project with Australian data residency</li>
-                <li>Configure Google Vision API with custom plant disease model</li>
+                <li>Configure Gemini 2.0 Flash API for intelligent plant health analysis</li>
                 <li>Implement APVMA API integration for real compliance checking</li>
                 <li>Add comprehensive error handling and monitoring</li>
               </ul>
 
               <h4 className="font-medium text-gray-900 mt-4">Enhanced Features (Week 3-6):</h4>
               <ul className="text-gray-600 space-y-1">
-                <li>Custom TensorFlow model training with Australian plant data</li>
+                <li>Enhanced Gemini prompts with Australian plant disease expertise</li>
                 <li>Real-time expert consultation system</li>
                 <li>Treatment effectiveness tracking and community features</li>
                 <li>Advanced analytics and user behavior insights</li>

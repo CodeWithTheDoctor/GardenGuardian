@@ -2,8 +2,8 @@
 // In a real app, these would interact with Firebase
 
 import { PlantDiagnosis, Treatment } from './types';
-import { analyzeImageWithVision } from './ai-vision';
-import { isFirebaseConfigured } from './firebase-config';
+import { analyzeImageWithGemini } from './gemini-vision';
+import { isFirebaseConfigured, auth } from './firebase-config';
 import { FIREBASE_ERRORS, throwConfigurationError } from './error-handling';
 
 // Import the real Firebase persistence service
@@ -294,20 +294,15 @@ const compressImage = async (file: File, maxWidth: number = 1200, quality: numbe
   });
 };
 
-// REAL DATA PERSISTENCE: Analyze image and save diagnosis to Firebase
+// INTELLIGENT PLANT ANALYSIS: Analyze image with Gemini 2.0 Flash and save diagnosis
 export const analyzePlantImage = async (imageFile: File): Promise<string> => {
   try {
     // Use retry mechanism for AI analysis
     return await retryOperation(
       async () => {
-        const result = await analyzeImageWithVision(imageFile);
+        const result = await analyzeImageWithGemini(imageFile);
         
-        if (!result.labels || result.labels.length === 0) {
-          throw new Error('No analysis results received');
-        }
-        
-        const diseaseResult = generateDiagnosisFromAnalysis(result);
-        console.log('✅ AI analysis completed:', diseaseResult);
+        console.log('🤖 Raw Gemini analysis result:', result);
         
         // Create proper diagnosis object with unique ID
         const diagnosisId = `diagnosis-${Date.now()}`;
@@ -315,49 +310,75 @@ export const analyzePlantImage = async (imageFile: File): Promise<string> => {
         // Handle image upload properly for both Firebase and demo modes
         const imageUrl = await uploadPlantImage(imageFile);
         
-        // Determine if this is a healthy plant
-        const isHealthy = result.isHealthyPlant || diseaseResult.includes('Healthy') || diseaseResult.includes('No Issues Detected');
+        // Get current user ID - check authentication first
+        let userId = 'demo-user-001'; // fallback default
         
-        // Use consistent demo user ID
-        const demoUserId = 'demo-user-001';
+        if (isFirebaseConfigured() && auth.currentUser) {
+          // Use authenticated user's ID
+          userId = auth.currentUser.uid;
+          console.log('🔍 Using authenticated user ID:', userId);
+        } else if (!isFirebaseConfigured()) {
+          // Check for demo user in localStorage
+          const demoUser = localStorage.getItem('demo-user');
+          if (demoUser) {
+            try {
+              const userData = JSON.parse(demoUser);
+              userId = userData.id || 'demo-user-001';
+              console.log('🔍 Using demo user ID:', userId);
+            } catch (err) {
+              console.warn('🔍 Failed to parse demo user data, using default');
+            }
+          }
+        } else {
+          console.log('🔍 No authenticated user, using default demo user ID');
+        }
+        
+        // Convert Gemini treatments to our Treatment interface
+        const convertedTreatments: Treatment[] = result.treatmentRecommendations.map((treatment, index) => ({
+          id: `gemini-${index}`,
+          name: treatment.name,
+          type: treatment.type,
+          instructions: [treatment.application, treatment.timing],
+          cost: parseFloat(treatment.cost.replace(/[^0-9.]/g, '')) || 0,
+          suppliers: [treatment.availability],
+          safetyWarnings: [treatment.safetyNotes],
+          webPurchaseLinks: treatment.bunningsAvailable ? ['https://www.bunnings.com.au'] : []
+        }));
         
         const diagnosisObject: PlantDiagnosis = {
           id: diagnosisId,
-          userId: demoUserId,
+          userId: userId,
           imageUrl: imageUrl,
           diagnosis: {
-            disease: diseaseResult,
-            confidence: result.confidence || 85,
-            severity: isHealthy ? 'mild' : 
-                     result.confidence > 95 ? 'severe' : 
-                     result.confidence > 85 ? 'moderate' : 'mild',
-            description: isHealthy 
-              ? `AI analysis confirms this appears to be a healthy plant with ${result.confidence || 85}% confidence. No disease indicators detected in the image.`
-              : `AI analysis detected plant health concerns with ${result.confidence || 85}% confidence. ${result.plantDiseaseDetected ? 'Disease indicators found in image.' : 'Analysis completed based on image content.'}`,
+            disease: result.diagnosis,
+            confidence: result.confidence,
+            severity: result.severity,
+            description: result.description,
+            plantHealth: result.plantHealth,
+            additionalNotes: result.additionalNotes,
             metadata: {
-              aiLabels: result.labels?.slice(0, 5) || [],
-              detectedObjects: result.objects || [],
-              analysisTimestamp: new Date().toISOString()
+              analysisTimestamp: result.analysisTimestamp,
+              geminiAnalysis: true
             }
           },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          treated: isHealthy ? true : false, // Mark healthy plants as "treated" (no action needed)
-          treatments: isHealthy ? [] : getRelevantTreatments(diseaseResult)
+          treated: result.plantHealth === 'healthy',
+          treatments: convertedTreatments
         };
         
         // Save the diagnosis
         await saveDiagnosis(diagnosisObject);
-        console.log('✅ Diagnosis saved with ID:', diagnosisId);
+        console.log('✅ Gemini diagnosis saved with ID:', diagnosisId);
         
-        // Return the proper diagnosis ID (not the disease name)
+        // Return the proper diagnosis ID
         return diagnosisId;
       },
       3, // max retries
       2000 // delay between retries
     );
   } catch (error) {
-    console.error('🚨 AI Analysis failed after retries:', error);
+    console.error('🚨 Gemini analysis failed after retries:', error);
     
     // Provide user-friendly error message
     if (error instanceof Error) {
@@ -367,6 +388,8 @@ export const analyzePlantImage = async (imageFile: File): Promise<string> => {
         throw new Error('Network connection issue. Please check your internet and try again.');
       } else if (error.message.includes('format')) {
         throw new Error('Image format not supported. Please try a different image.');
+      } else if (error.message.includes('GEMINI_VISION_NOT_CONFIGURED')) {
+        throw new Error('Gemini AI is not configured. Please set up your API key.');
       }
     }
     
@@ -462,42 +485,55 @@ const retryOperation = async <T>(
  * Generate diagnosis from AI analysis results
  */
 const generateDiagnosisFromAnalysis = (result: any): string => {
-  // Check if this is a healthy plant first
-  if (result.isHealthyPlant) {
-    return 'Healthy Plant Detected';
-  }
-  
-  // Check for actual disease detection
-  if (result.plantDiseaseDetected && result.suggestedDiseases.length > 0) {
+  console.log('🔍 DIAGNOSIS GENERATION DEBUG:', {
+    isHealthyPlant: result.isHealthyPlant,
+    plantDiseaseDetected: result.plantDiseaseDetected,
+    suggestedDiseases: result.suggestedDiseases,
+    confidence: result.confidence,
+    totalLabels: result.labels?.length || 0
+  });
+
+  // PRIORITY 1: Check for actual disease detection FIRST
+  if (result.plantDiseaseDetected && result.suggestedDiseases?.length > 0) {
+    console.log('✅ Disease detected:', result.suggestedDiseases[0]);
     return result.suggestedDiseases[0];
   }
   
-  // If we have plant labels but no specific disease indicators, be more cautious
+  // PRIORITY 2: Check disease-related labels even if AI didn't flag as disease
   const labels = result.labels || [];
+  const diseaseLabels = labels.filter((label: any) => {
+    const desc = label.description.toLowerCase();
+    return desc.includes('disease') || desc.includes('damage') || desc.includes('pest') ||
+           desc.includes('spot') || desc.includes('blight') || desc.includes('rust') ||
+           desc.includes('mildew') || desc.includes('black') || desc.includes('brown') ||
+           desc.includes('yellow') || desc.includes('wilt') || desc.includes('rot');
+  });
+  
+  if (diseaseLabels.length > 0) {
+    console.log('⚠️ Disease labels found:', diseaseLabels.map((l: any) => l.description));
+    return `Potential ${diseaseLabels[0].description} detected`;
+  }
+  
+  // PRIORITY 3: Only mark as healthy if explicitly detected as healthy
+  if (result.isHealthyPlant === true) {
+    console.log('✅ Confirmed healthy plant');
+    return 'Healthy Plant Detected';
+  }
+  
+  // PRIORITY 4: Check for plant labels
   const plantLabels = labels.filter((label: any) => 
     label.description.toLowerCase().includes('plant') ||
     label.description.toLowerCase().includes('leaf') ||
     label.description.toLowerCase().includes('vegetation')
   );
   
-  const diseaseLabels = labels.filter((label: any) => 
-    label.description.toLowerCase().includes('disease') ||
-    label.description.toLowerCase().includes('damage') ||
-    label.description.toLowerCase().includes('pest') ||
-    label.description.toLowerCase().includes('spot') ||
-    label.description.toLowerCase().includes('blight')
-  );
-  
-  // Only suggest issues if we actually find disease-related labels
-  if (diseaseLabels.length > 0) {
-    return `Potential ${diseaseLabels[0].description} detected`;
-  }
-  
-  // If we only see plant labels without disease indicators, assume healthy
-  if (plantLabels.length > 0) {
+  // Only assume healthy if we have plant labels AND no disease concerns
+  if (plantLabels.length > 0 && diseaseLabels.length === 0) {
+    console.log('🌱 Plant detected with no disease indicators');
     return 'Plant Health Assessment - No Issues Detected';
   }
   
+  console.log('❓ Uncertain analysis result');
   return 'Plant analysis completed - check results for details';
 };
 
@@ -510,10 +546,19 @@ export const getUserDiagnoses = async (userId?: string): Promise<PlantDiagnosis[
 
   try {
     const persistenceService = await getFirebasePersistence();
-    // Use consistent demo user ID when no userId provided and no authenticated user
-    const targetUserId = userId || 'demo-user-001';
+    
+    // Determine the target user ID - must be provided or throw error
+    let targetUserId: string;
+    
+    if (userId) {
+      targetUserId = userId;
+      console.log('✅ Loading diagnoses for provided user ID:', targetUserId);
+    } else {
+      throw new Error('User ID is required to load diagnoses. Please authenticate first.');
+    }
+    
     const diagnoses = await persistenceService.getUserDiagnoses(targetUserId);
-    console.log('✅ Loaded diagnoses from Firebase:', diagnoses.length);
+    console.log('✅ Loaded diagnoses from Firebase for user:', targetUserId, 'Count:', diagnoses.length);
     return diagnoses;
   } catch (error) {
     console.error('🚨 Error loading diagnoses from Firebase:', error);
@@ -597,8 +642,19 @@ export const getDashboardAnalytics = async (userId?: string) => {
 
   try {
     const persistenceService = await getFirebasePersistence();
-    const analytics = await persistenceService.getDashboardAnalytics(userId); 
-    console.log('✅ Loaded analytics from Firebase');
+    
+    // Determine the target user ID - must be provided or throw error
+    let targetUserId: string;
+    
+    if (userId) {
+      targetUserId = userId;
+      console.log('✅ Loading analytics for provided user ID:', targetUserId);
+    } else {
+      throw new Error('User ID is required to load analytics. Please authenticate first.');
+    }
+    
+    const analytics = await persistenceService.getDashboardAnalytics(targetUserId); 
+    console.log('✅ Loaded analytics from Firebase for user:', targetUserId);
     return analytics;
   } catch (error) {
     console.error('🚨 Error loading analytics from Firebase:', error);
@@ -606,207 +662,22 @@ export const getDashboardAnalytics = async (userId?: string) => {
   }
 };
 
-// Get relevant treatments based on diagnosed disease
+/**
+ * Fallback treatments - now only used for demo mode since Gemini generates dynamic treatments
+ * Keeping minimal set for when Gemini API is not available
+ */
 function getRelevantTreatments(disease?: string): Treatment[] {
-  if (!disease) return australianTreatments.slice(0, 2);
-  
-  // Map diseases to appropriate treatments - REAL AUSTRALIAN AGRICULTURE DATA
-  const treatmentMap: { [key: string]: Treatment[] } = {
-    // Fungal diseases
-    'Septoria Leaf Spot': [
-      {
-        id: 'tls1',
-        name: 'Copper Hydroxide Fungicide',
-        type: 'chemical',
-        instructions: [
-          'Mix 2g per 1L water',
-          'Spray every 10-14 days',
-          'Cover all leaf surfaces thoroughly',
-          'Apply preventatively to healthy plants'
-        ],
-        cost: 18,
-        apvmaNumber: 'APVMA 67890',
-        suppliers: ['Bunnings', 'Garden City', 'Rural Stores'],
-        safetyWarnings: [
-          'Wear gloves and eye protection',
-          'Do not apply in windy conditions',
-          'Toxic to fish - avoid water contamination'
-        ],
-        webPurchaseLinks: ['https://www.bunnings.com.au/search/products?q=copper+hydroxide']
-      }
-    ],
-    // Insect pests
-    'Aphid Infestation': [
-      {
-        id: 'aphid1',
-        name: 'Pyrethrum Insecticide',
-        type: 'organic',
-        instructions: [
-          'Spray directly on aphids in early morning or evening',
-          'Target undersides of leaves where aphids cluster',
-          'Repeat every 3-5 days if needed',
-          'Use with sticky traps for integrated control'
-        ],
-        cost: 14,
-        suppliers: ['Bunnings', 'Independent Garden Centres'],
-        safetyWarnings: [
-          'Toxic to bees - do not spray flowering plants during bloom',
-          'Keep away from waterways and fish'
-        ],
-        webPurchaseLinks: ['https://www.bunnings.com.au/search/products?q=pyrethrum+spray']
-      },
-      {
-        id: 'aphid2',
-        name: 'Neem Oil Concentrate',
-        type: 'organic',
-        instructions: [
-          'Mix 5ml per litre of water with wetting agent',
-          'Spray thoroughly coating all affected areas', 
-          'Apply fortnightly as preventive treatment',
-          'Safe for beneficial insects when dry'
-        ],
-        cost: 16,
-        suppliers: ['Bunnings', 'Garden City', 'Online Suppliers'],
-        safetyWarnings: [
-          'May cause leaf burn in hot weather - apply in cool conditions',
-          'Test on small area first'
-        ],
-        webPurchaseLinks: ['https://www.bunnings.com.au/search/products?q=neem+oil']
-      }
-    ],
-    'Powdery Mildew': [
-      {
-        id: 'pm1',
-        name: 'Potassium Bicarbonate Solution',
-        type: 'organic',
-        instructions: [
-          'Mix 5g per litre of water',
-          'Spray entire plant including undersides of leaves',
-          'Apply weekly during humid conditions',
-          'Best used as preventive measure'
-        ],
-        cost: 8,
-        suppliers: ['Health Food Stores', 'Online Suppliers', 'Some Garden Centres'],
-        safetyWarnings: [
-          'Generally safe for humans and pets',
-          'May cause minor leaf spotting on sensitive plants'
-        ],
-        webPurchaseLinks: ['https://www.google.com/search?q=potassium+bicarbonate+australia']
-      }
-    ],
-    'Black Spot': [
-      {
-        id: 'bs1',
-        name: 'Copper Oxychloride Fungicide',
-        type: 'chemical',
-        instructions: [
-          'Mix 2g per litre of water',
-          'Spray fortnightly during wet weather',
-          'Ensure complete coverage of all foliage',
-          'Continue treatment after symptoms disappear'
-        ],
-        cost: 15,
-        apvmaNumber: 'APVMA 54321',
-        suppliers: ['Bunnings', 'Rural Stores', 'Garden Centres'],
-        safetyWarnings: [
-          'Wear protective clothing and gloves',
-          'Toxic to fish - avoid contaminating waterways',
-          'Do not apply during flowering'
-        ],
-        webPurchaseLinks: ['https://www.bunnings.com.au/search/products?q=copper+oxychloride']
-      }
-    ],
-    'Leaf Rust': [
-      {
-        id: 'lr1',
-        name: 'Triazole Fungicide',
-        type: 'chemical',
-        instructions: [
-          'Apply at first sign of orange pustules',
-          'Spray every 2-3 weeks during active season',
-          'Rotate with different mode of action fungicides',
-          'Remove infected leaves and dispose carefully'
-        ],
-        cost: 22,
-        apvmaNumber: 'APVMA 76543',
-        suppliers: ['Rural Stores', 'Professional Suppliers'],
-        safetyWarnings: [
-          'Professional grade - read label carefully',
-          'May require permits in some states',
-          'Not for home garden use in some areas'
-        ],
-        webPurchaseLinks: []
-      }
-    ],
-    'Citrus Canker': [
-      {
-        id: 'cc1',
-        name: 'Copper-based Bactericide',
-        type: 'chemical',
-        instructions: [
-          'IMPORTANT: Citrus canker is a notifiable disease',
-          'Contact Department of Agriculture immediately',
-          'Do not move infected plant material',
-          'Professional treatment may be required'
-        ],
-        cost: 0,
-        apvmaNumber: 'Restricted Use',
-        suppliers: ['Agricultural Consultants Only'],
-        safetyWarnings: [
-          'This is a serious exotic disease',
-          'Legal requirements apply',
-          'Professional assessment required'
-        ],
-        webPurchaseLinks: []
-      }
-    ]
-  };
-  
-  // Try to match the disease to treatments using flexible matching
-  const matchedTreatments = findMatchingTreatments(disease, treatmentMap);
-  return matchedTreatments.length > 0 ? matchedTreatments : australianTreatments.slice(0, 2);
+  // With Gemini AI, this function is only used as a fallback
+  // Return basic Australian treatments for demo purposes
+  return australianTreatments.slice(0, 2);
 }
 
-// Helper function to match diseases to treatments with flexible matching
+/**
+ * Simplified matching function for fallback treatments
+ */
 function findMatchingTreatments(disease: string, treatmentMap: { [key: string]: Treatment[] }): Treatment[] {
-  const lowerDisease = disease.toLowerCase();
-  
-  // Direct exact match first
-  for (const [key, treatments] of Object.entries(treatmentMap)) {
-    if (key.toLowerCase() === lowerDisease) {
-      return treatments;
-    }
-  }
-  
-  // Flexible matching for common disease patterns
-  const diseaseKeywords = {
-    'aphid': 'Aphid Infestation',
-    'septoria': 'Septoria Leaf Spot', 
-    'leaf spot': 'Septoria Leaf Spot',
-    'powdery mildew': 'Powdery Mildew',
-    'mildew': 'Powdery Mildew',
-    'black spot': 'Black Spot',
-    'rust': 'Leaf Rust',
-    'canker': 'Citrus Canker'
-  };
-  
-  // Check if disease contains any keywords
-  for (const [keyword, treatmentKey] of Object.entries(diseaseKeywords)) {
-    if (lowerDisease.includes(keyword) && treatmentMap[treatmentKey]) {
-      return treatmentMap[treatmentKey];
-    }
-  }
-  
-  // Check for general fungal/bacterial/pest indicators
-  if (lowerDisease.includes('spot') || lowerDisease.includes('blight') || lowerDisease.includes('fungal')) {
-    return treatmentMap['Septoria Leaf Spot'] || [];
-  }
-  
-  if (lowerDisease.includes('insect') || lowerDisease.includes('pest') || lowerDisease.includes('bug')) {
-    return treatmentMap['Aphid Infestation'] || [];
-  }
-  
-  return [];
+  // Since Gemini AI handles treatment matching, this is now just a simple fallback
+  return australianTreatments.slice(0, 2);
 }
 
 // ENHANCED: Weather-based alerts using real weather data
