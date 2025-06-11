@@ -56,7 +56,6 @@ export default function Navbar() {
     { name: 'Diagnose', href: '/diagnose', icon: <Camera className="h-5 w-5" /> },
     { name: 'Dashboard', href: '/dashboard', icon: <BarChart2 className="h-5 w-5" /> },
     { name: 'Community', href: '/community', icon: <Users className="h-5 w-5" /> },
-    { name: 'Compliance', href: '/compliance', icon: <Shield className="h-5 w-5" /> },
     { name: 'Config', href: '/config', icon: <Settings className="h-5 w-5" /> },
   ];
 

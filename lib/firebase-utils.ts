@@ -300,15 +300,15 @@ export const analyzePlantImage = async (imageFile: File): Promise<string> => {
     // Use retry mechanism for AI analysis
     return await retryOperation(
       async () => {
-        const result = await analyzeImageWithGemini(imageFile);
-        
-        console.log('🤖 Raw Gemini analysis result:', result);
-        
         // Create proper diagnosis object with unique ID
         const diagnosisId = `diagnosis-${Date.now()}`;
         
         // Handle image upload properly for both Firebase and demo modes
         const imageUrl = await uploadPlantImage(imageFile);
+        
+        const result = await analyzeImageWithGemini(imageFile, imageUrl);
+        
+        console.log('🤖 Raw Gemini analysis result:', result);
         
         // Get current user ID - check authentication first
         let userId = 'demo-user-001'; // fallback default
@@ -338,10 +338,19 @@ export const analyzePlantImage = async (imageFile: File): Promise<string> => {
           id: `gemini-${index}`,
           name: treatment.name,
           type: treatment.type,
-          instructions: [treatment.application, treatment.timing],
+          instructions: [
+            treatment.application, 
+            treatment.timing,
+            '⚠️ VERIFY: Check product registration at portal.apvma.gov.au',
+            '⚠️ CONSULT: Seek professional agricultural advice before use'
+          ],
           cost: parseFloat(treatment.cost.replace(/[^0-9.]/g, '')) || 0,
           suppliers: [treatment.availability],
-          safetyWarnings: [treatment.safetyNotes],
+          safetyWarnings: [
+            treatment.safetyNotes,
+            'This is an AI-generated suggestion requiring professional verification',
+            'Always read and follow product labels exactly'
+          ],
           webPurchaseLinks: treatment.bunningsAvailable ? ['https://www.bunnings.com.au'] : []
         }));
         

@@ -329,36 +329,14 @@ export default function DiagnosePage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <motion.div 
-          className="text-center mb-8 md:mb-12"
-          variants={staggerContainer}
-          initial="initial"
-          animate="animate"
-        >
-          <motion.div variants={fadeInUp}>
-            <Badge variant="outline" className="mb-4 border-garden-medium text-garden-dark px-3 py-1">
-              <Sparkles className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-              AI Plant Diagnosis
-            </Badge>
-          </motion.div>
-          
-          <motion.h1 
-            variants={fadeInUp}
-            className="text-2xl md:text-4xl font-bold text-garden-dark mb-4"
-          >
-            Diagnose Your Plant's Health
-          </motion.h1>
-          
-          <motion.p 
-            variants={fadeInUp}
-            className="text-garden-medium text-sm md:text-lg max-w-2xl mx-auto"
-          >
-            Upload a clear photo of your plant showing any signs of disease, pests, or health issues. 
-            Our AI will analyze it and provide expert treatment recommendations.
-          </motion.p>
-        </motion.div>
+      <div className="max-w-2xl mx-auto">
+        
+        <h1 className="text-3xl md:text-4xl font-bold text-garden-dark text-center mb-6">
+          Plant Health Analysis
+        </h1>
+        <p className="text-center text-garden-medium mb-10 max-w-md mx-auto">
+          Take a clear photo of your plant for comprehensive AI analysis and treatment recommendations.
+        </p>
 
         <AnimatePresence mode="wait">
           {!selectedImage && !isCameraOpen && (

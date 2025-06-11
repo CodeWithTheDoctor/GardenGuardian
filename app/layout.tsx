@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import Navbar from '@/components/navbar';
 import Footer from '@/components/footer';
+import { Toaster } from '@/components/ui/toaster';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -64,7 +65,7 @@ export default function RootLayout({
   return (
     <html lang="en-AU" suppressHydrationWarning>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#386641" />
         <meta name="color-scheme" content="light" />
         
@@ -97,14 +98,39 @@ export default function RootLayout({
         <meta name="msapplication-TileImage" content="/icon-144.svg" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
-      <body className={`${inter.className} min-h-screen flex flex-col`}>
+      <body className={`${inter.className} min-h-screen flex flex-col w-full overflow-x-hidden`}>
+
+        
         <ThemeProvider attribute="class" defaultTheme="light">
-          <Navbar />
-          <main className="flex-1">
+          {/* Navigation with proper ARIA role */}
+          <header role="banner">
+            <Navbar />
+          </header>
+          
+          {/* Main content area with proper landmark */}
+          <main 
+            id="main-content" 
+            role="main" 
+            className="flex-1 focus:outline-none" 
+            tabIndex={-1}
+          >
             {children}
           </main>
-          <Footer />
+          
+          {/* Footer with proper landmark */}
+          <footer role="contentinfo">
+            <Footer />
+          </footer>
+          <Toaster />
         </ThemeProvider>
+        
+        {/* Live region for announcements */}
+        <div 
+          id="live-region" 
+          aria-live="polite" 
+          aria-atomic="true" 
+          className="sr-only"
+        ></div>
       </body>
     </html>
   );

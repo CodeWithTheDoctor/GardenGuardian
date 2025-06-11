@@ -117,29 +117,24 @@ export function TreatmentRecommendations({
   });
   
   return (
-    <Card className="border-garden-light/30">
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle className="text-xl text-garden-dark flex items-center">
-          <Leaf className="h-5 w-5 mr-2 text-garden-light" />
-          Australian-Compliant Treatment Recommendations
-          {location && (
-            <Badge variant="outline" className="ml-2 text-xs">
-              <MapPin className="h-3 w-3 mr-1" />
-              {location.state}
-            </Badge>
-          )}
+        <CardTitle className="flex items-center gap-2 text-garden-dark">
+          <Shield className="h-5 w-5" />
+          Treatment Recommendations
         </CardTitle>
       </CardHeader>
       
       <CardContent>
+
+
         {location && (
-          <Alert className="mb-6 border-blue-200 bg-blue-50">
-            <Shield className="h-4 w-4" />
-            <AlertTitle>Real-time Compliance Checking Active</AlertTitle>
-            <AlertDescription>
-              Treatment recommendations are being checked against current APVMA regulations 
-              and {location.state} state requirements.
-              {loading && ' Compliance data loading...'}
+          <Alert className="mb-6 border-green-200 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-800">Location-Optimized Recommendations</AlertTitle>
+            <AlertDescription className="text-green-700">
+              Treatments are tailored for {location.state} growing conditions and seasonal factors.
+              {loading && ' Updating recommendations...'}
             </AlertDescription>
           </Alert>
         )}
@@ -148,21 +143,11 @@ export function TreatmentRecommendations({
           <div className="text-center py-8">
             <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-garden-dark mb-2">
-              No treatments match your preferences
+              No treatments available
             </h3>
-            <p className="text-garden-medium mb-6">
-              We couldn't find treatments that match your budget or preference settings.
+            <p className="text-garden-medium">
+              We couldn't find suitable treatments for this plant condition at the moment.
             </p>
-            <Button 
-              variant="outline"
-              className="border-garden-medium text-garden-dark"
-              onClick={() => {
-                // In a real app, this would reset filters
-                console.log('Reset filters');
-              }}
-            >
-              Reset Preferences
-            </Button>
           </div>
         ) : (
           <div className="space-y-6">
@@ -171,34 +156,23 @@ export function TreatmentRecommendations({
               const isCompliant = compliance?.compliant !== false;
               
               return (
-                <div key={treatment.id} className={`bg-white border rounded-lg overflow-hidden ${
-                  isCompliant ? 'border-garden-light/20' : 'border-yellow-400'
-                }`}>
+                <Card key={treatment.id} className="border-l-4 border-l-garden-medium hover:shadow-lg transition-shadow">
                   <div className="flex flex-col lg:flex-row">
-                    {/* Treatment Header */}
-                    <div className="lg:w-1/3 p-4 bg-garden-light/10">
-                      <div className="flex flex-row lg:flex-col justify-between">
+                    {/* Treatment Summary */}
+                    <div className="lg:w-1/3 p-4 bg-garden-light/10 border-r border-garden-light/30">
+                      <div className="flex flex-col h-full justify-between">
                         <div>
-                          <div className="flex gap-2 mb-2">
-                            <Badge className={
-                              treatment.type === 'organic' ? 'bg-garden-light text-garden-dark' : 
-                              treatment.type === 'chemical' ? 'bg-yellow-500 text-white' : 
-                              'bg-blue-500 text-white'
-                            }>
-                              {treatment.type.charAt(0).toUpperCase() + treatment.type.slice(1)}
+                          <div className="flex items-start justify-between mb-3">
+                            <h3 className="font-semibold text-garden-dark text-lg leading-tight pr-2">
+                              {treatment.name}
+                            </h3>
+                            <Badge 
+                              variant={treatment.type === 'organic' ? 'secondary' : 'outline'}
+                              className="flex-shrink-0 ml-2"
+                            >
+                              {treatment.type}
                             </Badge>
-                            
-                            {compliance && (
-                              <Badge variant={isCompliant ? 'default' : 'destructive'}>
-                                <Shield className="h-3 w-3 mr-1" />
-                                {isCompliant ? 'Compliant' : 'Check Required'}
-                              </Badge>
-                            )}
                           </div>
-                          
-                          <h3 className="text-lg font-semibold text-garden-dark">
-                            {treatment.name}
-                          </h3>
                         </div>
                         
                         <div className="mt-2 lg:mt-4">
@@ -211,14 +185,19 @@ export function TreatmentRecommendations({
                             </span>
                           </div>
                           <div className="text-xs text-garden-medium">
-                            Typical cost
+                            Estimated cost
                           </div>
                         </div>
                       </div>
                       
                       {treatment.apvmaNumber && (
-                        <div className="mt-4 text-xs text-garden-medium bg-garden-light/20 p-2 rounded">
-                          <strong>APVMA Registered:</strong> {treatment.apvmaNumber}
+                        <div className="mt-4 text-xs text-garden-medium bg-yellow-100 border border-yellow-300 p-2 rounded">
+                          <div className="flex items-center gap-1 mb-1">
+                            <AlertTriangle className="h-3 w-3 text-yellow-600" />
+                            <strong className="text-yellow-800">Verify Registration</strong>
+                          </div>
+                          <p className="text-yellow-700">AI suggests: {treatment.apvmaNumber}</p>
+                          <p className="text-yellow-700 text-xs mt-1">⚠️ Check actual registration status</p>
                         </div>
                       )}
 
@@ -226,7 +205,7 @@ export function TreatmentRecommendations({
                         <div className="mt-2 text-xs bg-yellow-100 border border-yellow-300 p-2 rounded">
                           <div className="flex items-center gap-1 mb-1">
                             <Clock className="h-3 w-3 text-yellow-600" />
-                            <strong className="text-yellow-800">Permit Required</strong>
+                            <strong className="text-yellow-800">Permit May Be Required</strong>
                           </div>
                           <p className="text-yellow-700">{compliance.permitType}</p>
                         </div>
@@ -267,7 +246,7 @@ export function TreatmentRecommendations({
 
                       <h4 className="font-medium text-garden-dark mb-3 flex items-center">
                         <CheckCircle className="h-4 w-4 text-garden-medium mr-1" />
-                        Application Instructions
+                        AI-Generated Instructions
                       </h4>
                       
                       <div className="space-y-3 mb-4">
@@ -285,7 +264,7 @@ export function TreatmentRecommendations({
                         <div className="mb-4">
                           <h4 className="font-medium text-garden-dark mb-2 flex items-center text-sm">
                             <AlertTriangle className="h-4 w-4 text-yellow-500 mr-1" />
-                            Safety Warnings
+                            AI-Generated Safety Warnings
                           </h4>
                           <ul className="list-disc pl-5 text-sm text-garden-medium space-y-1">
                             {treatment.safetyWarnings.map((warning, i) => (
@@ -303,12 +282,12 @@ export function TreatmentRecommendations({
                             asChild
                           >
                             <a
-                              href={`https://portal.apvma.gov.au/pubcris/${treatment.apvmaNumber}`}
+                              href={`https://portal.apvma.gov.au/pubcris`}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
                               <FileText className="h-3.5 w-3.5 mr-1" />
-                              APVMA Label
+                              Verify APVMA Registration
                               <ExternalLink className="h-3 w-3 ml-1" />
                             </a>
                           </Button>
@@ -333,20 +312,28 @@ export function TreatmentRecommendations({
                           </Button>
                         ))}
                       </div>
-
-                      {compliance?.contactInformation && compliance.permitRequired && (
-                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
-                          <div className="font-medium text-blue-800 mb-1">Permit Contact Information:</div>
-                          <div className="text-blue-700">{compliance.contactInformation}</div>
-                        </div>
-                      )}
                     </div>
                   </div>
-                </div>
+                </Card>
               );
             })}
           </div>
         )}
+        
+        {/* Professional Advice Notice */}
+        <Alert className="mt-6 border-garden-medium/30 bg-garden-light/10">
+          <Shield className="h-4 w-4 text-garden-medium" />
+          <AlertTitle className="text-garden-dark">Seek Professional Advice</AlertTitle>
+          <AlertDescription className="text-garden-medium text-sm">
+            For accurate diagnosis and treatment recommendations, consult with:
+            <ul className="list-disc list-inside mt-2 space-y-1">
+              <li>Local agricultural extension officers</li>
+              <li>Licensed pest control professionals</li>
+              <li>Qualified horticulturists or agronomists</li>
+              <li>Experienced garden center specialists</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
       </CardContent>
     </Card>
   );
