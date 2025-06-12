@@ -1,14 +1,17 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, XCircle, AlertCircle, Database, Camera, Cpu, Globe, Shield, BarChart3 } from 'lucide-react';
-import { isFirebaseConfigured, isAnalyticsConfigured } from '@/lib/firebase-config';
+import { CheckCircle, XCircle, AlertCircle, Database, Camera, Cpu, Globe, Shield, BarChart3, AlertTriangle } from 'lucide-react';
+import { isFirebaseConfigured, isAnalyticsConfigured, auth } from '@/lib/firebase-config';
 import { isGeminiAPIConfigured, getGeminiConfigurationStatus } from '@/lib/gemini-vision';
 import { ServiceErrorDisplay } from '@/components/ui/service-error';
 import { FIREBASE_ERRORS, GEMINI_VISION_ERRORS } from '@/lib/error-handling';
+import { onAuthStateChanged } from 'firebase/auth';
 import Link from 'next/link';
 
 interface ConfigItem {
@@ -21,6 +24,40 @@ interface ConfigItem {
 }
 
 export default function ConfigPage() {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const router = useRouter();
+
+  // Check admin status
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          // Force token refresh to get latest custom claims
+          await user.getIdToken(true);
+          const idTokenResult = await user.getIdTokenResult();
+          const isUserAdmin = idTokenResult.claims.admin === true;
+          
+          setIsAdmin(isUserAdmin);
+          
+          if (!isUserAdmin) {
+            router.push('/login');
+          }
+        } catch (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+          router.push('/login');
+        }
+      } else {
+        setIsAdmin(false);
+        router.push('/login');
+      }
+      setAuthChecked(true);
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
   const firebaseReady = isFirebaseConfigured();
   const geminiReady = isGeminiAPIConfigured();
   const analyticsReady = isAnalyticsConfigured();
@@ -103,6 +140,52 @@ export default function ConfigPage() {
   const configuredCount = configurations.filter(c => c.status === 'configured').length;
   const errorCount = configurations.filter(c => c.status === 'error').length;
   const missingCount = configurations.filter(c => c.status === 'missing').length;
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-garden-cream flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-garden-dark mx-auto mb-4"></div>
+          <p className="text-garden-medium">Checking access permissions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-garden-cream flex items-center justify-center px-4">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-garden-alert">
+              <AlertTriangle className="h-5 w-5" />
+              Access Denied
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-garden-medium mb-4">
+              You don't have permission to access this configuration panel. Admin privileges are required.
+            </p>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => router.push('/')}
+                className="flex-1 bg-garden-dark hover:bg-garden-medium"
+              >
+                Go Home
+              </Button>
+              <Button 
+                onClick={() => router.push('/admin')}
+                variant="outline"
+                className="flex-1 border-garden-dark text-garden-dark hover:bg-garden-dark hover:text-white"
+              >
+                Admin Panel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

@@ -16,6 +16,8 @@ import {
   Plus, Filter, Search, Shield, Clock, Award
 } from 'lucide-react';
 import { communityService, CommunityPost, LocalAlert, CommunityUser } from '@/lib/community-service';
+import { auth } from '@/lib/firebase-config';
+import { onAuthStateChanged, User } from 'firebase/auth';
 
 export default function CommunityPage() {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -25,12 +27,21 @@ export default function CommunityPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [userLocation, setUserLocation] = useState('2000'); // Default postcode
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [newPost, setNewPost] = useState({
     title: '',
     content: '',
     type: 'question' as const,
     tags: [] as string[]
   });
+
+  // Listen for authentication state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     loadCommunityData();
@@ -58,10 +69,14 @@ export default function CommunityPage() {
 
   const handleCreatePost = async () => {
     if (!newPost.title.trim() || !newPost.content.trim()) return;
+    if (!currentUser) {
+      alert('Please sign in to create posts');
+      return;
+    }
 
     try {
       const postData = {
-        authorId: 'current_user', // In real app, get from auth
+        authorId: currentUser.uid, // Use real authenticated user ID
         type: newPost.type,
         title: newPost.title,
         content: newPost.content,
@@ -79,6 +94,7 @@ export default function CommunityPage() {
       setShowCreatePost(false);
     } catch (error) {
       console.error('Error creating post:', error);
+      alert('Failed to create post. Please try again.');
     }
   };
 

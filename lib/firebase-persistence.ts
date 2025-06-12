@@ -636,11 +636,6 @@ class FirebasePersistenceService {
     limit?: number;
     offset?: number;
   } = {}): Promise<CommunityPost[]> {
-    if (!this.currentUser) {
-      // Fallback to sessionStorage for demo mode
-      return this.getAllFromSessionStorage('community_posts');
-    }
-
     try {
       let q = query(
         collection(db, 'community_posts'),
@@ -675,8 +670,15 @@ class FirebasePersistenceService {
       console.log('✅ Loaded community posts from Firestore:', posts.length);
       return posts;
     } catch (error) {
-      console.error('Error loading community posts:', error);
-      // Fallback to sessionStorage
+      console.error('❌ Error loading community posts from Firestore:', error);
+      
+      // If not authenticated, try to return empty array instead of sessionStorage
+      if (!this.currentUser) {
+        console.log('⚠️ No authentication, returning empty array');
+        return [];
+      }
+      
+      // Fallback to sessionStorage only if authenticated
       return this.getAllFromSessionStorage('community_posts');
     }
   }

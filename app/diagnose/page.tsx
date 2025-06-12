@@ -19,6 +19,7 @@ import {
 import { analyzePlantImage } from '@/lib/firebase-utils';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ContextualFeedback } from '@/components/contextual-feedback';
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -679,6 +680,12 @@ export default function DiagnosePage() {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Contextual Feedback for Upload Experience */}
+        <ContextualFeedback
+          context="image-upload"
+          trigger="exit-intent"
+        />
       </div>
     </motion.div>
   );

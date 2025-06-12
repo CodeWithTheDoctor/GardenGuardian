@@ -155,20 +155,20 @@ class CommunityService {
       const persistence = await this.getFirebasePersistence();
       
       if (!persistence) {
-        console.error('Firebase not configured - cannot load community posts');
-        throwConfigurationError(COMMUNITY_ERRORS.NOT_CONFIGURED);
+        console.log('Firebase not configured - no posts available');
+        return [];
       }
       
-      if (!persistence.isAuthenticated) {
-        console.error('User not authenticated - cannot load community posts');
-        throwConfigurationError(COMMUNITY_ERRORS.AUTH_REQUIRED);
+      // Try to get posts from Firebase
+      try {
+        return await persistence.getCommunityPosts(filters);
+      } catch (error) {
+        console.log('Error loading posts from Firebase:', error);
+        return [];
       }
-      
-      // Production mode - use real Firebase
-      return await persistence.getCommunityPosts(filters);
     } catch (error) {
       console.error('Error loading community posts:', error);
-      throw error;
+      return [];
     }
   }
 
@@ -251,18 +251,22 @@ class CommunityService {
     try {
       const persistence = await this.getFirebasePersistence();
       
-      if (persistence && persistence.isAuthenticated) {
-        // Production mode - use real Firebase
-        return await persistence.getLocalAlerts(postcode, radius);
+      if (persistence) {
+        // Try to get alerts from Firebase
+        try {
+          return await persistence.getLocalAlerts(postcode, radius);
+        } catch (error) {
+          console.log('Error loading alerts from Firebase:', error);
+          return [];
+        }
       } else {
-        // Demo mode - use mock alerts
-        const mockAlerts = this.getMockAlerts(postcode);
-        console.log('📝 Loaded local alerts from demo mode');
-        return mockAlerts;
+        // No Firebase configuration
+        console.log('Firebase not configured - no alerts available');
+        return [];
       }
     } catch (error) {
       console.error('Error loading local alerts:', error);
-      return this.getMockAlerts(postcode);
+      return [];
     }
   }
 
@@ -273,18 +277,22 @@ class CommunityService {
     try {
       const persistence = await this.getFirebasePersistence();
       
-      if (persistence && persistence.isAuthenticated) {
-        // Production mode - use real Firebase
-        return await persistence.getNearbyUsers(postcode, radius);
+      if (persistence) {
+        // Try to get nearby gardeners from Firebase
+        try {
+          return await persistence.getNearbyUsers(postcode, radius);
+        } catch (error) {
+          console.log('Error loading nearby gardeners from Firebase:', error);
+          return [];
+        }
       } else {
-        // Demo mode - use mock users
-        const mockUsers = this.getMockNearbyGardeners(postcode);
-        console.log('📝 Loaded nearby gardeners from demo mode');
-        return mockUsers;
+        // No Firebase configuration
+        console.log('Firebase not configured - no gardeners available');
+        return [];
       }
     } catch (error) {
       console.error('Error loading nearby gardeners:', error);
-      return this.getMockNearbyGardeners(postcode);
+      return [];
     }
   }
 
@@ -466,6 +474,107 @@ class CommunityService {
         createdAt: '2024-01-15T10:30:00Z',
         updatedAt: '2024-01-15T10:30:00Z',
         featured: true,
+        moderated: true
+      },
+      {
+        id: 'mock_demo_2',
+        authorId: 'demo_gardener_2',
+        author: {
+          id: 'demo_gardener_2',
+          name: 'Mike Thompson',
+          email: 'mike@example.com',
+          location: { postcode: '2000', suburb: 'Sydney', state: 'NSW' },
+          expertise: ['Fruit Trees', 'Pest Management'],
+          verified: false,
+          verificationLevel: 'community',
+          joinedAt: '2023-06-01T00:00:00Z',
+          reputation: 180,
+          postsCount: 23,
+          helpfulAnswers: 45,
+          plantsHelped: 67
+        },
+        type: 'help_request',
+        title: '🆘 DEMO: White spots on my rose leaves - help needed!',
+        content: 'Hi everyone! I\'ve noticed white powdery spots appearing on my rose leaves. They started small but are spreading quickly. The weather has been quite humid lately. Has anyone dealt with this before? What treatment worked for you?\n\n📍 Located in Sydney, NSW\n🌹 Variety: David Austin roses\n\n✨ This is demo content - real community posts will replace this!',
+        images: [],
+        tags: ['roses', 'disease', 'white-spots', 'help-needed', 'demo'],
+        disease: 'Powdery Mildew',
+        plantType: 'Roses',
+        urgency: 'medium',
+        status: 'open',
+        likes: 8,
+        likedBy: [],
+        comments: [],
+        views: 89,
+        createdAt: '2024-01-14T14:20:00Z',
+        updatedAt: '2024-01-14T14:20:00Z',
+        featured: false,
+        moderated: true
+      },
+      {
+        id: 'mock_demo_3',
+        authorId: 'demo_expert_3',
+        author: {
+          id: 'demo_expert_3',
+          name: 'Dr. Emma Wilson',
+          email: 'emma@example.com',
+          location: { postcode: '4000', suburb: 'Brisbane', state: 'QLD' },
+          expertise: ['Plant Pathology', 'Integrated Pest Management'],
+          verified: true,
+          verificationLevel: 'professional',
+          joinedAt: '2022-03-10T00:00:00Z',
+          reputation: 890,
+          postsCount: 156,
+          helpfulAnswers: 234,
+          plantsHelped: 456
+        },
+        type: 'tip',
+        title: '💡 DEMO: Early detection tips for common plant diseases',
+        content: 'As we head into the warmer months, here are my top 5 tips for catching plant diseases early:\n\n1. **Daily inspection routine** - Check your plants every morning\n2. **Look for subtle changes** - Slight discoloration often appears first\n3. **Check undersides of leaves** - Many pests and diseases start there\n4. **Monitor new growth** - Young shoots are most vulnerable\n5. **Use the GardenGuardian AI** - Take photos when in doubt!\n\nEarly detection = easier treatment = healthier plants! 🌱\n\n✨ This is demo content from our expert community!',
+        images: [],
+        tags: ['tips', 'disease-prevention', 'early-detection', 'expert-advice', 'demo'],
+        urgency: 'low',
+        status: 'open',
+        likes: 42,
+        likedBy: [],
+        comments: [],
+        views: 234,
+        createdAt: '2024-01-13T09:15:00Z',
+        updatedAt: '2024-01-13T09:15:00Z',
+        featured: true,
+        moderated: true
+      },
+      {
+        id: 'mock_demo_4',
+        authorId: 'demo_gardener_4',
+        author: {
+          id: 'demo_gardener_4',
+          name: 'Lisa Park',
+          email: 'lisa@example.com',
+          location: { postcode: '5000', suburb: 'Adelaide', state: 'SA' },
+          expertise: ['Vegetable Gardening'],
+          verified: false,
+          verificationLevel: 'none',
+          joinedAt: '2023-11-20T00:00:00Z',
+          reputation: 45,
+          postsCount: 8,
+          helpfulAnswers: 12,
+          plantsHelped: 15
+        },
+        type: 'question',
+        title: '❓ DEMO: Best organic treatments for aphids?',
+        content: 'New to organic gardening and dealing with my first aphid infestation on my lettuce! 🥬 I want to avoid chemicals but need effective solutions. What organic treatments have worked best for you?\n\nI\'ve heard about:\n- Neem oil\n- Soap spray\n- Ladybugs\n- Companion planting\n\nAny recommendations? Thanks in advance! 🙏\n\n✨ This is demo content - join our community to ask real questions!',
+        images: [],
+        tags: ['aphids', 'organic', 'lettuce', 'pest-control', 'beginner', 'demo'],
+        urgency: 'medium',
+        status: 'open',
+        likes: 15,
+        likedBy: [],
+        comments: [],
+        views: 67,
+        createdAt: '2024-01-12T16:45:00Z',
+        updatedAt: '2024-01-12T16:45:00Z',
+        featured: false,
         moderated: true
       }
     ];

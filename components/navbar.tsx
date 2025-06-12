@@ -12,6 +12,7 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const firebaseReady = isFirebaseConfigured();
 
   // Listen to Firebase auth state changes
@@ -26,9 +27,25 @@ export default function Navbar() {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       console.log('🔍 Auth state changed:', user ? user.uid : 'signed out');
       setUser(user);
+      
+      // Check admin status if user is authenticated
+      if (user) {
+        try {
+          await user.getIdToken(true);
+          const idTokenResult = await user.getIdTokenResult();
+          const isUserAdmin = idTokenResult.claims.admin === true;
+          setIsAdmin(isUserAdmin);
+        } catch (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
+      
       setIsLoading(false);
     });
 
@@ -46,6 +63,7 @@ export default function Navbar() {
         setUser(null);
         console.log('🔍 Demo user signed out');
       }
+      setIsAdmin(false);
     } catch (error) {
       console.error('Sign out error:', error);
     }
@@ -56,8 +74,12 @@ export default function Navbar() {
     { name: 'Diagnose', href: '/diagnose', icon: <Camera className="h-5 w-5" /> },
     { name: 'Dashboard', href: '/dashboard', icon: <BarChart2 className="h-5 w-5" /> },
     { name: 'Community', href: '/community', icon: <Users className="h-5 w-5" /> },
-    { name: 'Config', href: '/config', icon: <Settings className="h-5 w-5" /> },
   ];
+
+  // Add admin link only if user is admin
+  const allNavLinks = isAdmin 
+    ? [...navLinks, { name: 'Admin', href: '/admin', icon: <Shield className="h-5 w-5" /> }]
+    : navLinks;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-garden-light/20 bg-garden-cream/80 backdrop-blur supports-[backdrop-filter]:bg-garden-cream/60">
@@ -78,12 +100,15 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-6">
-            {navLinks.map(({ name, href }) => (
+            {allNavLinks.map(({ name, href }) => (
               <Link 
                 key={name}
                 href={href}
-                className="text-garden-dark hover:text-garden-medium transition-colors font-medium"
+                className={`text-garden-dark hover:text-garden-medium transition-colors font-medium ${
+                  name === 'Admin' ? 'flex items-center gap-1' : ''
+                }`}
               >
+                {name === 'Admin' && <Shield className="h-4 w-4" />}
                 {name}
               </Link>
             ))}
@@ -94,6 +119,7 @@ export default function Navbar() {
               <>
                 <span className="hidden sm:inline text-sm text-garden-medium">
                   Welcome, {user.displayName || user.email?.split('@')[0] || 'User'}
+                  {isAdmin && <span className="ml-1 text-xs bg-garden-dark text-white px-1 py-0.5 rounded">Admin</span>}
                 </span>
                 <Button 
                   variant="ghost" 
@@ -162,15 +188,18 @@ export default function Navbar() {
                   
                   <div className="flex-1 overflow-auto py-4">
                     <nav className="flex flex-col gap-1 px-2">
-                      {navLinks.map(({ name, href, icon }) => (
+                      {allNavLinks.map(({ name, href, icon }) => (
                         <Link
                           key={name}
                           href={href}
-                          className="flex items-center gap-3 rounded-md px-3 py-2 text-garden-dark hover:bg-garden-light/10 transition-colors"
+                          className={`flex items-center gap-3 rounded-md px-3 py-2 text-garden-dark hover:bg-garden-light/10 transition-colors ${
+                            name === 'Admin' ? 'bg-garden-dark/5 border border-garden-dark/10' : ''
+                          }`}
                           onClick={() => setIsOpen(false)}
                         >
                           {icon}
                           <span>{name}</span>
+                          {name === 'Admin' && <span className="ml-auto text-xs bg-garden-dark text-white px-1 py-0.5 rounded">Admin</span>}
                         </Link>
                       ))}
                     </nav>
@@ -190,7 +219,7 @@ export default function Navbar() {
                               {user.displayName || user.email?.split('@')[0] || 'User'}
                             </p>
                             <p className="text-garden-medium">
-                              Authenticated User
+                              {isAdmin ? 'Administrator' : 'Authenticated User'}
                             </p>
                           </div>
                         </div>

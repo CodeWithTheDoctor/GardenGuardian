@@ -19,6 +19,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { motion } from 'framer-motion';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
+import { ContextualFeedback } from '@/components/contextual-feedback';
 
 const fadeInUp = {
   initial: { opacity: 0, y: 40 },
@@ -520,6 +521,14 @@ export default function DiagnosisPage() {
               </motion.div>
             )}
           </motion.div>
+
+          {/* Contextual Feedback */}
+          <ContextualFeedback
+            context="diagnosis-complete"
+            diagnosisId={diagnosis.id}
+            trigger="delayed"
+            delay={5000}
+          />
         </motion.div>
       </div>
     </motion.div>
