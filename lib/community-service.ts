@@ -598,6 +598,31 @@ class CommunityService {
       }
     ];
   }
+
+  /**
+   * REAL: Delete a community post (admin only)
+   */
+  async deletePost(postId: string): Promise<void> {
+    try {
+      const persistence = await this.getFirebasePersistence();
+      
+      if (!persistence) {
+        console.error('Firebase not configured - cannot delete community post');
+        throwConfigurationError(COMMUNITY_ERRORS.NOT_CONFIGURED);
+      }
+      
+      if (!persistence.isAuthenticated) {
+        console.error('User not authenticated - cannot delete community post');
+        throwConfigurationError(COMMUNITY_ERRORS.AUTH_REQUIRED);
+      }
+      
+      // Production mode - use real Firebase
+      return await persistence.deleteCommunityPost(postId);
+    } catch (error) {
+      console.error('Error deleting community post:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance

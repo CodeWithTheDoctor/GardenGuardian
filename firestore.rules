@@ -29,28 +29,31 @@ service cloud.firestore {
       allow read, list: if request.auth != null && request.auth.token.admin == true;
     }
     
-    // Community posts - authenticated users can create, all authenticated users can read
+    // Community posts - allow reading for all authenticated users, writing for authenticated users, deleting for admins
     match /community_posts/{postId} {
-      allow read, list: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && 
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.authorId;
+      allow update: if request.auth != null && 
         (request.auth.uid == resource.data.authorId || request.auth.token.admin == true);
+      allow delete: if request.auth != null && request.auth.token.admin == true;
     }
     
-    // Community comments - authenticated users can create, all authenticated users can read
+    // Community comments - allow reading for all authenticated users, writing for authenticated users, deleting for admins
     match /community_comments/{commentId} {
-      allow read, list: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && 
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.authorId;
+      allow update: if request.auth != null && 
         (request.auth.uid == resource.data.authorId || request.auth.token.admin == true);
+      allow delete: if request.auth != null && request.auth.token.admin == true;
     }
     
-    // Local alerts - authenticated users can create, all authenticated users can read
+    // Local alerts - allow reading for all authenticated users, writing for authenticated users
     match /local_alerts/{alertId} {
-      allow read, list: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && 
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.authorId;
+      allow update: if request.auth != null && 
         (request.auth.uid == resource.data.authorId || request.auth.token.admin == true);
+      allow delete: if request.auth != null && request.auth.token.admin == true;
     }
     
     // Legacy community posts collection (for backward compatibility)

@@ -8,16 +8,17 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
   Users, MapPin, Star, MessageCircle, Heart, Share2, 
   AlertTriangle, CheckCircle, Leaf, Bug, Calendar,
-  Plus, Filter, Search, Shield, Clock, Award
+  Plus, Filter, Search, Shield, Clock, Award, Trash2, X
 } from 'lucide-react';
 import { communityService, CommunityPost, LocalAlert, CommunityUser } from '@/lib/community-service';
 import { auth } from '@/lib/firebase-config';
 import { onAuthStateChanged, User } from 'firebase/auth';
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
+import { WYSIWYGEditor } from '@/components/ui/wysiwyg-editor';
 
 export default function CommunityPage() {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -28,6 +29,7 @@ export default function CommunityPage() {
   const [userLocation, setUserLocation] = useState('2000'); // Default postcode
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [newPost, setNewPost] = useState({
     title: '',
     content: '',
@@ -37,8 +39,21 @@ export default function CommunityPage() {
 
   // Listen for authentication state
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
+      
+      // Check if user is admin
+      if (user) {
+        try {
+          const token = await user.getIdTokenResult();
+          setIsAdmin(!!token.claims.admin);
+        } catch (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -95,6 +110,26 @@ export default function CommunityPage() {
     } catch (error) {
       console.error('Error creating post:', error);
       alert('Failed to create post. Please try again.');
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!isAdmin) {
+      alert('Only administrators can delete posts');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await communityService.deletePost(postId);
+      setPosts(prev => prev.filter(post => post.id !== postId));
+      alert('Post deleted successfully');
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      alert('Failed to delete post. Please try again.');
     }
   };
 
@@ -297,11 +332,10 @@ export default function CommunityPage() {
                       <option value="alert">Alert</option>
                     </select>
                   </div>
-                  <Textarea
-                    placeholder="Share your experience, ask for help, or give advice..."
+                  <WYSIWYGEditor
                     value={newPost.content}
-                    onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
-                    rows={4}
+                    onChange={(content) => setNewPost(prev => ({ ...prev, content }))}
+                    placeholder="Share your experience, ask for help, or give advice..."
                   />
                   <div className="flex gap-2">
                     <Button onClick={handleCreatePost}>Post</Button>
@@ -382,9 +416,7 @@ export default function CommunityPage() {
                         <h3 className="text-lg font-semibold text-garden-dark mb-2">
                           {post.title}
                         </h3>
-                        <p className="text-garden-medium whitespace-pre-wrap">
-                          {post.content}
-                        </p>
+                        <MarkdownRenderer content={post.content} />
                       </div>
 
                       {/* Post Images */}
@@ -431,6 +463,12 @@ export default function CommunityPage() {
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Resolved
                           </Badge>
+                        )}
+                        {isAdmin && (
+                          <Button variant="ghost" size="sm" className="text-garden-medium" onClick={() => handleDeletePost(post.id)}>
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
                         )}
                       </div>
                     </CardContent>

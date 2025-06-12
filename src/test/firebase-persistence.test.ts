@@ -85,7 +85,18 @@ class MockFirebasePersistenceService {
       email: user.email,
       displayName: user.displayName,
       preferences: { treatmentType: 'both', notifications: true, weatherAlerts: true },
-      statistics: { totalDiagnoses: 0, successfulTreatments: 0, memberSince: new Date().toISOString() },
+      statistics: { 
+        totalDiagnoses: 0, 
+        successfulTreatments: 0, 
+        postsCount: 0,
+        helpfulAnswers: 0,
+        plantsHelped: 0,
+        reputation: 0,
+        memberSince: new Date().toISOString() 
+      },
+      expertise: [],
+      verified: false,
+      verificationLevel: 'none',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
@@ -99,7 +110,18 @@ class MockFirebasePersistenceService {
       email: 'test@example.com',
       displayName: 'Test User',
       preferences: { treatmentType: 'both', notifications: true, weatherAlerts: true },
-      statistics: { totalDiagnoses: 5, successfulTreatments: 4, memberSince: '2024-01-01' },
+      statistics: { 
+        totalDiagnoses: 5, 
+        successfulTreatments: 4, 
+        postsCount: 2,
+        helpfulAnswers: 3,
+        plantsHelped: 8,
+        reputation: 150,
+        memberSince: '2024-01-01' 
+      },
+      expertise: ['Plant Pathology'],
+      verified: true,
+      verificationLevel: 'community',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
@@ -232,7 +254,18 @@ describe('Firebase Persistence Service - Phase 1', () => {
         id: 'test',
         email: 'test@example.com',
         preferences: { treatmentType: 'organic', notifications: true, weatherAlerts: false },
-        statistics: { totalDiagnoses: 1, successfulTreatments: 1, memberSince: '2024-01-01' },
+        statistics: { 
+          totalDiagnoses: 1, 
+          successfulTreatments: 1, 
+          postsCount: 0,
+          helpfulAnswers: 0,
+          plantsHelped: 0,
+          reputation: 0,
+          memberSince: '2024-01-01' 
+        },
+        expertise: [],
+        verified: false,
+        verificationLevel: 'none',
         createdAt: '2024-01-01',
         updatedAt: '2024-01-01'
       }

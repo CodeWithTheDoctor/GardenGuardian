@@ -1061,6 +1061,44 @@ class FirebasePersistenceService {
     }
     return this.convertUserProfileToCommunityUser(this.userProfile);
   }
+
+  /**
+   * Delete a community post (admin only)
+   */
+  async deleteCommunityPost(postId: string): Promise<void> {
+    if (!this.currentUser) {
+      throw new Error('User must be authenticated to delete posts');
+    }
+
+    try {
+      // Check if user is admin (you can customize this check)
+      const token = await this.currentUser.getIdTokenResult();
+      if (!token.claims.admin) {
+        throw new Error('Only administrators can delete posts');
+      }
+
+      // Delete the post document
+      await deleteDoc(doc(db, 'community_posts', postId));
+
+      // Also delete associated comments
+      const commentsQuery = query(
+        collection(db, 'community_comments'),
+        where('postId', '==', postId)
+      );
+      
+      const commentsSnapshot = await getDocs(commentsQuery);
+      const deletePromises = commentsSnapshot.docs.map(commentDoc => 
+        deleteDoc(doc(db, 'community_comments', commentDoc.id))
+      );
+      
+      await Promise.all(deletePromises);
+
+      console.log('✅ Post and associated comments deleted:', postId);
+    } catch (error) {
+      console.error('Error deleting community post:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance
