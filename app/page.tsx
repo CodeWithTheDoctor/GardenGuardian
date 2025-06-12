@@ -58,7 +58,7 @@ export default function Home() {
       </div>
 
       {/* Hero Section - Enhanced with Emotional Hook */}
-      <section className="w-full px-4 py-16 md:py-24 relative overflow-hidden" role="banner">
+      <section className="w-full px-4 py-16 md:py-24 lg:py-20 xl:py-24 relative overflow-hidden" role="banner">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5" aria-hidden="true">
           <div className="absolute top-10 left-10 w-32 h-32 rounded-full bg-garden-medium"></div>
@@ -66,7 +66,7 @@ export default function Home() {
           <div className="absolute bottom-20 left-1/4 w-20 h-20 rounded-full bg-garden-dark"></div>
         </div>
         
-        <div className="w-full max-w-none mx-auto relative z-10">
+        <div className="w-full max-w-none lg:max-w-7xl xl:max-w-none mx-auto relative z-10">
           <motion.div 
             className="text-center mb-12"
             initial="initial"
@@ -82,7 +82,7 @@ export default function Home() {
 
             <motion.h1 
               variants={fadeInUp}
-              className="text-5xl md:text-6xl lg:text-7xl font-bold text-garden-dark mb-8 leading-tight px-4"
+              className="text-5xl md:text-6xl lg:text-5xl xl:text-6xl font-bold text-garden-dark mb-8 leading-tight px-4"
             >
               Sick Plant? Snap a Photo
               <br />
@@ -91,14 +91,14 @@ export default function Home() {
             
             <motion.p 
               variants={fadeInUp}
-              className="text-2xl md:text-3xl text-garden-dark font-medium mb-6 max-w-4xl mx-auto leading-relaxed px-4"
+              className="text-2xl md:text-3xl lg:text-2xl xl:text-2xl text-garden-dark font-medium mb-6 max-w-4xl mx-auto leading-relaxed px-4"
             >
               Fast, expert advice tailored to your backyard — no green thumb needed
             </motion.p>
             
             <motion.p 
               variants={fadeInUp}
-              className="text-lg md:text-xl text-garden-medium max-w-3xl mx-auto mb-12 leading-relaxed px-4"
+              className="text-lg md:text-xl lg:text-lg xl:text-xl text-garden-medium max-w-3xl mx-auto mb-12 leading-relaxed px-4"
             >
               Powered by AI, built for Aussie gardens. Trained on Australian plants, pests & climate zones
             </motion.p>
@@ -110,13 +110,13 @@ export default function Home() {
               <Button 
                 asChild 
                 size="lg" 
-                className="bg-garden-dark hover:bg-garden-medium text-white px-10 py-5 text-lg md:text-xl font-semibold rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 min-h-[64px] max-w-md w-full sm:w-auto"
+                className="bg-garden-dark hover:bg-garden-medium text-white px-10 py-5 text-lg md:text-xl lg:text-lg xl:text-xl font-semibold rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 min-h-[64px] lg:min-h-[56px] xl:min-h-[64px] max-w-md w-full sm:w-auto"
                 aria-label="Start diagnosing your plant by taking a photo - takes under 10 seconds"
               >
-                <Link href="/diagnose" className="flex items-center justify-center gap-3 md:gap-4">
-                  <Camera className="h-7 w-7 md:h-8 md:w-8" aria-hidden="true" />
-                  <span className="text-lg md:text-xl">Snap & Diagnose Now</span>
-                  <ArrowRight className="h-6 w-6 md:h-7 md:w-7" aria-hidden="true" />
+                <Link href="/diagnose" className="flex items-center justify-center gap-3 md:gap-4 lg:gap-3 xl:gap-4">
+                  <Camera className="h-7 w-7 md:h-8 md:w-8 lg:h-7 lg:w-7 xl:h-8 xl:w-8" aria-hidden="true" />
+                  <span className="text-lg md:text-xl lg:text-lg xl:text-xl">Snap & Diagnose Now</span>
+                  <ArrowRight className="h-6 w-6 md:h-7 md:w-7 lg:h-6 lg:w-6 xl:h-7 xl:w-7" aria-hidden="true" />
                 </Link>
               </Button>
               <p className="text-sm text-garden-medium mt-3 font-medium" aria-label="Time indicator">
@@ -152,12 +152,12 @@ export default function Home() {
                     animate={{ rotate: [0, 5, -5, 0] }}
                     transition={{ duration: 6, repeat: Infinity, repeatDelay: 3 }}
                   >
-                    <Leaf className="h-20 w-20 sm:h-28 sm:w-28 md:h-36 md:w-36 text-garden-medium mx-auto mb-3 sm:mb-5" aria-hidden="true" />
+                    <Leaf className="h-20 w-20 sm:h-28 sm:w-28 md:h-36 md:w-36 lg:h-28 lg:w-28 xl:h-32 xl:w-32 text-garden-medium mx-auto mb-3 sm:mb-5" aria-hidden="true" />
                   </motion.div>
-                  <h2 className="text-garden-dark font-bold text-lg sm:text-xl md:text-2xl mb-1 sm:mb-2">
+                  <h2 className="text-garden-dark font-bold text-lg sm:text-xl md:text-2xl lg:text-xl xl:text-2xl mb-1 sm:mb-2">
                     AI Plant Doctor
                   </h2>
-                  <p className="text-garden-medium text-sm sm:text-base md:text-lg">
+                  <p className="text-garden-medium text-sm sm:text-base md:text-lg lg:text-base xl:text-lg">
                     Professional plant care, simplified
                   </p>
                 </div>
@@ -168,8 +168,8 @@ export default function Home() {
       </section>
 
       {/* How It Works - Enhanced with Clearer Steps */}
-      <section className="w-full px-4 py-16 bg-gradient-to-br from-white to-garden-light/10 relative" role="main">
-        <div className="w-full max-w-none mx-auto">
+      <section className="w-full px-4 py-16 lg:py-12 xl:py-16 bg-gradient-to-br from-white to-garden-light/10 relative" role="main">
+        <div className="w-full max-w-none lg:max-w-7xl xl:max-w-none mx-auto">
           <motion.div 
             className="text-center mb-16"
             initial="initial"
@@ -179,13 +179,13 @@ export default function Home() {
           >
             <motion.h2 
               variants={fadeInUp}
-              className="text-4xl md:text-5xl font-bold text-garden-dark mb-6 px-4"
+              className="text-4xl md:text-5xl lg:text-4xl xl:text-4xl font-bold text-garden-dark mb-6 px-4"
             >
               How It Works
             </motion.h2>
             <motion.p 
               variants={fadeInUp}
-              className="text-xl md:text-2xl text-garden-medium max-w-3xl mx-auto px-4"
+              className="text-xl md:text-2xl lg:text-xl xl:text-xl text-garden-medium max-w-3xl mx-auto px-4"
             >
               Three simple steps to healthier plants — perfect for busy Aussie gardeners
             </motion.p>
@@ -208,16 +208,16 @@ export default function Home() {
               >
                 <div className="relative mb-8">
                   <div className="w-32 h-32 mx-auto bg-gradient-to-br from-garden-light/30 to-garden-medium/30 rounded-full flex items-center justify-center border-4 border-garden-light/50 shadow-lg">
-                    <step.icon className="h-16 w-16 text-garden-medium" aria-hidden="true" />
+                    <step.icon className="h-16 w-16 lg:h-12 lg:w-12 xl:h-14 xl:w-14 text-garden-medium" aria-hidden="true" />
                   </div>
-                  <div className="absolute -top-3 -right-3 w-12 h-12 bg-garden-dark text-white rounded-full flex items-center justify-center font-bold text-xl shadow-lg" aria-label={`Step ${index + 1}`}>
+                  <div className="absolute -top-3 -right-3 w-12 h-12 lg:w-10 lg:h-10 xl:w-12 xl:h-12 bg-garden-dark text-white rounded-full flex items-center justify-center font-bold text-xl lg:text-lg xl:text-xl shadow-lg" aria-label={`Step ${index + 1}`}>
                     {index + 1}
                   </div>
                 </div>
-                <h3 className="text-2xl md:text-3xl font-bold text-garden-dark mb-6">
+                <h3 className="text-2xl md:text-3xl lg:text-2xl xl:text-2xl font-bold text-garden-dark mb-6">
                   {step.title}
                 </h3>
-                <p className="text-lg md:text-xl text-garden-medium leading-relaxed font-medium">
+                <p className="text-lg md:text-xl lg:text-lg xl:text-lg text-garden-medium leading-relaxed font-medium">
                   {step.description}
                 </p>
               </motion.div>
@@ -244,7 +244,7 @@ export default function Home() {
             </motion.div>
             <motion.p 
               variants={fadeInUp}
-              className="text-2xl md:text-3xl text-garden-dark font-bold mb-4"
+              className="text-2xl md:text-3xl lg:text-2xl xl:text-2xl text-garden-dark font-bold mb-4"
             >
               Advice for Aussie plants & pests • Built for Australian climate zones
             </motion.p>
@@ -253,7 +253,7 @@ export default function Home() {
       </section>
 
       {/* Key Benefits - Redesigned with Better Visual Hierarchy */}
-      <section className="w-full px-4 py-16 bg-gradient-to-br from-garden-light/15 to-garden-medium/10 relative overflow-hidden">
+      <section className="w-full px-4 py-16 lg:py-12 xl:py-16 bg-gradient-to-br from-garden-light/15 to-garden-medium/10 relative overflow-hidden">
         {/* Background decorative elements */}
         <div className="absolute inset-0 opacity-5" aria-hidden="true">
           <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-garden-medium transform translate-x-32 -translate-y-32"></div>
@@ -270,13 +270,13 @@ export default function Home() {
           >
             <motion.h2 
               variants={fadeInUp}
-              className="text-4xl md:text-5xl font-bold text-garden-dark mb-6 px-4"
+              className="text-4xl md:text-5xl lg:text-4xl xl:text-4xl font-bold text-garden-dark mb-6 px-4"
             >
               Why Choose GardenGuardian?
             </motion.h2>
             <motion.p 
               variants={fadeInUp}
-              className="text-xl md:text-2xl text-garden-medium max-w-4xl mx-auto px-4"
+              className="text-xl md:text-2xl lg:text-xl xl:text-xl text-garden-medium max-w-4xl mx-auto px-4"
             >
               Australian-made intelligence for Australian gardens
             </motion.p>
@@ -294,15 +294,15 @@ export default function Home() {
               <CardHeader className="pb-6 pt-12">
                 <div className="text-center">
                   <div className="w-28 h-28 mx-auto mb-8 bg-gradient-to-br from-garden-light/30 to-garden-medium/30 rounded-3xl flex items-center justify-center shadow-lg">
-                    <Zap className="h-16 w-16 text-garden-medium" aria-hidden="true" />
+                    <Zap className="h-16 w-16 lg:h-12 lg:w-12 xl:h-14 xl:w-14 text-garden-medium" aria-hidden="true" />
                   </div>
-                  <CardTitle className="text-3xl md:text-4xl lg:text-5xl text-garden-dark mb-8 font-bold leading-tight">
+                  <CardTitle className="text-3xl md:text-4xl lg:text-3xl xl:text-4xl text-garden-dark mb-8 font-bold leading-tight">
                     Instant Plant Diagnosis
                   </CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="px-8 pb-12">
-                <p className="text-xl md:text-2xl text-garden-medium leading-relaxed text-center font-medium">
+                <p className="text-xl md:text-2xl lg:text-xl xl:text-xl text-garden-medium leading-relaxed text-center font-medium">
                   Advanced AI analysis identifies plant health issues in seconds, not days
                 </p>
               </CardContent>
@@ -327,14 +327,14 @@ export default function Home() {
                 <Card className="h-full border-2 border-garden-light/30 hover:border-garden-medium/40 transition-all duration-300 hover:shadow-lg bg-white/90 rounded-2xl">
                   <CardHeader className="pb-4 pt-10">
                     <div className="flex items-start gap-6">
-                      <div className="w-20 h-20 bg-gradient-to-br from-garden-light/20 to-garden-medium/20 rounded-2xl flex items-center justify-center flex-shrink-0">
-                        <benefit.icon className="h-10 w-10 text-garden-medium" aria-hidden="true" />
+                      <div className="w-20 h-20 lg:w-16 lg:h-16 xl:w-20 xl:h-20 bg-gradient-to-br from-garden-light/20 to-garden-medium/20 rounded-2xl flex items-center justify-center flex-shrink-0">
+                        <benefit.icon className="h-10 w-10 lg:h-8 lg:w-8 xl:h-10 xl:w-10 text-garden-medium" aria-hidden="true" />
                       </div>
                       <div className="flex-1">
-                        <CardTitle className="text-xl md:text-2xl text-garden-dark mb-4 font-bold text-left">
+                        <CardTitle className="text-xl md:text-2xl lg:text-xl xl:text-2xl text-garden-dark mb-4 font-bold text-left">
                           {benefit.title}
                         </CardTitle>
-                        <p className="text-base md:text-lg text-garden-medium leading-relaxed text-left">
+                        <p className="text-base md:text-lg lg:text-base xl:text-lg text-garden-medium leading-relaxed text-left">
                           {benefit.description}
                         </p>
                       </div>
@@ -395,13 +395,13 @@ export default function Home() {
             >
               <motion.h2 
                 variants={fadeInUp}
-                className="text-4xl md:text-6xl font-bold mb-8"
+                className="text-4xl md:text-6xl lg:text-4xl xl:text-5xl font-bold mb-8"
               >
                 Ready to Help Your Plants?
               </motion.h2>
               <motion.p 
                 variants={fadeInUp}
-                className="text-xl md:text-2xl text-garden-cream mb-12 max-w-3xl mx-auto leading-relaxed font-medium"
+                className="text-xl md:text-2xl lg:text-xl xl:text-xl text-garden-cream mb-12 max-w-3xl mx-auto leading-relaxed font-medium"
               >
                 Join thousands of Aussie gardeners getting instant, expert plant care advice
               </motion.p>
@@ -413,9 +413,9 @@ export default function Home() {
                   aria-label="Check your plant's health now with instant AI diagnosis"
                 >
                   <Link href="/diagnose" className="flex items-center justify-center gap-3 md:gap-4">
-                    <Camera className="h-8 w-8 md:h-9 md:w-9 flex-shrink-0" aria-hidden="true" />
-                    <span className="text-lg md:text-xl">Check My Plant's Health</span>
-                    <ArrowRight className="h-7 w-7 md:h-8 md:w-8 flex-shrink-0" aria-hidden="true" />
+                    <Camera className="h-8 w-8 md:h-9 md:w-9 lg:h-8 lg:w-8 xl:h-9 xl:w-9 flex-shrink-0" aria-hidden="true" />
+                    <span className="text-lg md:text-xl lg:text-lg xl:text-xl">Check My Plant's Health</span>
+                    <ArrowRight className="h-7 w-7 md:h-8 md:w-8 lg:h-7 lg:w-7 xl:h-8 xl:w-8 flex-shrink-0" aria-hidden="true" />
                   </Link>
                 </Button>
               </motion.div>
