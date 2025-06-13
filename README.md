@@ -17,10 +17,10 @@ Australian home gardeners lose **30-40% of their produce annually** due to late 
 ### 🔬 **AI Plant Doctor**
 
 - Instant disease/pest identification via photo upload
-- 96%+ accuracy with Australian-specific plant diseases
-- Confidence scoring and severity assessment
+- Advanced Gemini 2.0 Flash AI for intelligent plant health analysis
+- Australian-specific expertise and treatment recommendations
 - Mobile camera integration with auto-focus
-- **NEW**: Professional diagnosis experience with collapsible disclaimers
+- Professional diagnosis experience with collapsible disclaimers
 
 ### 📱 **Functional User Actions**
 
@@ -34,30 +34,29 @@ Australian home gardeners lose **30-40% of their produce annually** due to late 
 
 - APVMA-registered treatment recommendations
 - State-specific biosecurity regulations
-- Local supplier integration (Bunnings, Garden City)
+- Professional treatment verification requirements
 - Climate zone-specific advice
 
 ### 📱 **Mobile-First Design**
 
 - Progressive Web App (PWA) capabilities
 - Touch-optimized interface for garden use
-- Offline diagnosis capability
 - Works in direct sunlight conditions
 - **Enhanced**: Professional presentation suitable for commercial deployment
 
-### 🌐 **Community Network**
+### 🌐 **Community Platform**
 
-- Local gardener connections
-- Success story sharing
-- Pest outbreak alerts
-- Expert verification system
+- User authentication and data isolation
+- Professional user profiles
+- Privacy-first architecture
+- Expert verification system (requires configuration)
 
 ### 📊 **Health Dashboard**
 
-- Plant recovery tracking
-- Treatment progress monitoring
-- Weather-based alerts
-- Historical diagnosis archive
+- Plant diagnosis history
+- Treatment recommendations
+- Weather-based alerts (requires OpenWeather API key)
+- Professional error handling
 
 ## 🚀 Quick Start
 
@@ -82,14 +81,22 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-### Production Build
+### Required Environment Variables
 
 ```bash
-# Build for production
-npm run build
+# Gemini AI (Required for intelligent plant health analysis)
+NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_key
 
-# Start production server
-npm start
+# Firebase (Required for persistence, auth, community)
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+
+# Weather (Optional - for enhanced weather features)
+NEXT_PUBLIC_OPENWEATHER_API_KEY=your_weather_key
 ```
 
 ## 📚 Documentation
@@ -144,41 +151,13 @@ Comprehensive documentation is organized in the [`docs/`](./docs/) folder:
 - **Smart User Feedback**: Toast notification system with success/error states
 - **Commercial Presentation**: Interface suitable for paid subscriptions
 
-### 🎤 **Hackathon Challenge Integrations**
-
-#### **Voice AI Challenge (ElevenLabs)**
-
-- Voice-guided plant diagnosis
-- Spoken treatment instructions
-- Hands-free garden mode
-- Accessibility for vision-impaired users
-
-#### **Custom Domain Challenge (Entri/IONOS)**
-
-- Professional domain: `gardenguardian.com.au`
-- SSL certificate setup
-- DNS optimization for Australian users
-
-#### **Deploy Challenge (Netlify)**
-
-- Production deployment with CDN
-- Performance optimization
-- Automatic deployments from Git
-
-#### **Conversational AI Video Challenge (Tavus)**
-
-- AI garden expert video consultations
-- Personalized treatment explanations
-- Interactive Q&A sessions
-
 ## 📱 Progressive Web App Features
 
 - **Installable**: Add to home screen
-- **Offline Capable**: Cached diagnosis data
-- **Push Notifications**: Treatment reminders
 - **Camera Integration**: Native mobile camera access
-- **Background Sync**: Sync when connection restored
 - **Professional UX**: Commercial-grade user experience
+- **Cross-Platform**: Works on all modern browsers
+- **Responsive Design**: Optimized for all screen sizes
 
 ## 🇦🇺 Australian Market Focus
 
@@ -186,7 +165,7 @@ Comprehensive documentation is organized in the [`docs/`](./docs/) folder:
 
 - **APVMA Registration**: All chemical treatments include registration numbers
 - **State Regulations**: Biosecurity compliance by state
-- **Local Suppliers**: Direct links to Australian retailers
+- **Professional Verification**: Clear requirements for treatment verification
 - **Climate Zones**: Recommendations based on Australian climate data
 
 ### Common Australian Diseases Covered
@@ -203,9 +182,8 @@ Comprehensive documentation is organized in the [`docs/`](./docs/) folder:
 1. **First Australian-Specific Platform**: Only solution trained on Australian pest/disease patterns
 2. **Regulatory Compliance**: Built-in APVMA and biosecurity compliance
 3. **Mobile-First**: Designed for actual garden use conditions
-4. **Community-Driven**: Local expertise network effect
-5. **Professional Grade**: University-level accuracy in consumer format
-6. ****NEW**: Commercial-Ready UX**: Professional interface suitable for monetization
+4. **Professional Grade**: Advanced AI analysis in consumer format
+5. **Commercial-Ready UX**: Professional interface suitable for monetization
 
 ## 📊 Market Impact
 
