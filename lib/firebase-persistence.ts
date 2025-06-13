@@ -14,7 +14,10 @@ import {
   orderBy, 
   limit,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  increment,
+  arrayRemove,
+  arrayUnion
 } from 'firebase/firestore';
 import { 
   ref, 
@@ -33,6 +36,7 @@ export interface UserProfile {
   id: string;
   email: string;
   displayName?: string;
+  avatar?: string;
   location?: {
     postcode: string;
     state: string;
@@ -184,6 +188,11 @@ class FirebasePersistenceService {
       id: user.uid,
       email: user.email || '',
       displayName: user.displayName || undefined,
+      location: {
+        postcode: '0000',
+        state: 'Unknown',
+        city: 'Unknown'
+      },
       preferences: {
         treatmentType: 'both',
         notifications: true,
@@ -237,17 +246,33 @@ class FirebasePersistenceService {
     }
   }
 
-  async updateUserProfile(updates: Partial<UserProfile>): Promise<void> {
-    if (!this.currentUser) throw new Error('User not authenticated');
-
-    const docRef = doc(db, 'users', this.currentUser.uid);
-    await updateDoc(docRef, {
+  async updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<void> {
+    if (!db) throw new Error('Firebase not configured');
+    
+    const userRef = doc(db, 'users', userId);
+    const updateData = {
       ...updates,
       updatedAt: serverTimestamp()
-    });
+    };
 
-    if (this.userProfile) {
-      this.userProfile = { ...this.userProfile, ...updates };
+    // If location is being updated, ensure it has all required fields
+    if (updates.location) {
+      updateData.location = {
+        postcode: updates.location.postcode || '0000',
+        state: updates.location.state || 'Unknown',
+        city: updates.location.city || 'Unknown'
+      };
+    }
+
+    await updateDoc(userRef, updateData);
+    
+    // Update local cache
+    if (this.userProfile && this.userProfile.id === userId) {
+      this.userProfile = {
+        ...this.userProfile,
+        ...updates,
+        updatedAt: new Date().toISOString()
+      };
     }
   }
 
@@ -671,15 +696,7 @@ class FirebasePersistenceService {
       return posts;
     } catch (error) {
       console.error('❌ Error loading community posts from Firestore:', error);
-      
-      // If not authenticated, try to return empty array instead of sessionStorage
-      if (!this.currentUser) {
-        console.log('⚠️ No authentication, returning empty array');
-        return [];
-      }
-      
-      // Fallback to sessionStorage only if authenticated
-      return this.getAllFromSessionStorage('community_posts');
+      return []; // Return empty array on error
     }
   }
 
@@ -787,29 +804,23 @@ class FirebasePersistenceService {
 
       const postData = postDoc.data();
       const likedBy = postData.likedBy || [];
-      const userId = this.currentUser.uid;
-      
-      let newLikedBy: string[];
-      let liked: boolean;
+      const hasLiked = likedBy.includes(this.currentUser.uid);
 
-      if (likedBy.includes(userId)) {
+      if (hasLiked) {
         // Unlike
-        newLikedBy = likedBy.filter((id: string) => id !== userId);
-        liked = false;
+        await updateDoc(postRef, {
+          likes: increment(-1),
+          likedBy: arrayRemove(this.currentUser.uid)
+        });
+        return { liked: false, totalLikes: (postData.likes || 0) - 1 };
       } else {
         // Like
-        newLikedBy = [...likedBy, userId];
-        liked = true;
+        await updateDoc(postRef, {
+          likes: increment(1),
+          likedBy: arrayUnion(this.currentUser.uid)
+        });
+        return { liked: true, totalLikes: (postData.likes || 0) + 1 };
       }
-
-      await updateDoc(postRef, {
-        likes: newLikedBy.length,
-        likedBy: newLikedBy,
-        updatedAt: serverTimestamp()
-      });
-
-      console.log(`✅ Post ${liked ? 'liked' : 'unliked'}:`, postId);
-      return { liked, totalLikes: newLikedBy.length };
     } catch (error) {
       console.error('Error toggling post like:', error);
       throw error;
@@ -1031,11 +1042,10 @@ class FirebasePersistenceService {
    * Convert UserProfile to CommunityUser
    */
   private convertUserProfileToCommunityUser(profile: UserProfile): CommunityUser {
-    return {
+    const communityUser: CommunityUser = {
       id: profile.id,
       name: profile.displayName || 'Garden User',
       email: profile.email,
-      avatar: undefined, // Add avatar field to UserProfile if needed
       location: {
         postcode: profile.location?.postcode || '0000',
         suburb: profile.location?.city || 'Unknown', // Map city to suburb
@@ -1050,6 +1060,13 @@ class FirebasePersistenceService {
       helpfulAnswers: profile.statistics.helpfulAnswers || 0,
       plantsHelped: profile.statistics.plantsHelped || 0
     };
+
+    // Only add avatar if it exists in the profile
+    if (profile.avatar) {
+      communityUser.avatar = profile.avatar;
+    }
+
+    return communityUser;
   }
 
   /**

@@ -159,7 +159,7 @@ class CommunityService {
         return [];
       }
       
-      // Try to get posts from Firebase
+      // Try to get posts from Firebase - no auth required for reading
       try {
         return await persistence.getCommunityPosts(filters);
       } catch (error) {
@@ -179,32 +179,16 @@ class CommunityService {
     try {
       const persistence = await this.getFirebasePersistence();
       
-      if (persistence && persistence.isAuthenticated) {
-        // Production mode - use real Firebase
-        return await persistence.addCommentToPost(postId, commentData);
-      } else {
-        // Demo mode - use sessionStorage
-        const comment: CommunityComment = {
-          ...commentData,
-          id: `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          author: await this.getUserProfile(commentData.authorId),
-          likes: 0,
-          helpfulVotes: 0,
-          likedBy: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-
-        const posts = JSON.parse(sessionStorage.getItem('community_posts') || '[]');
-        const postIndex = posts.findIndex((p: CommunityPost) => p.id === postId);
-        if (postIndex >= 0) {
-          posts[postIndex].comments.push(comment);
-          sessionStorage.setItem('community_posts', JSON.stringify(posts));
-        }
-        
-        console.log('📝 Comment added in demo mode');
-        return comment;
+      if (!persistence) {
+        throwConfigurationError(COMMUNITY_ERRORS.NOT_CONFIGURED);
       }
+      
+      if (!persistence.isAuthenticated) {
+        throwConfigurationError(COMMUNITY_ERRORS.AUTH_REQUIRED);
+      }
+      
+      // Production mode - use real Firebase
+      return await persistence.addCommentToPost(postId, commentData);
     } catch (error) {
       console.error('Error adding comment:', error);
       throw error;
@@ -218,26 +202,16 @@ class CommunityService {
     try {
       const persistence = await this.getFirebasePersistence();
       
-      if (persistence && persistence.isAuthenticated) {
-        // Production mode - use real Firebase
-        return await persistence.togglePostLike(postId);
-      } else {
-        // Demo mode - simulate like functionality
-        const posts = JSON.parse(sessionStorage.getItem('community_posts') || '[]');
-        const postIndex = posts.findIndex((p: CommunityPost) => p.id === postId);
-        
-        if (postIndex >= 0) {
-          const currentLikes = posts[postIndex].likes || 0;
-          const newLikes = currentLikes + (Math.random() > 0.5 ? 1 : -1);
-          posts[postIndex].likes = Math.max(0, newLikes);
-          sessionStorage.setItem('community_posts', JSON.stringify(posts));
-          
-          console.log('📝 Post like toggled in demo mode');
-          return { liked: true, totalLikes: posts[postIndex].likes };
-        }
-        
-        return { liked: false, totalLikes: 0 };
+      if (!persistence) {
+        throwConfigurationError(COMMUNITY_ERRORS.NOT_CONFIGURED);
       }
+      
+      if (!persistence.isAuthenticated) {
+        throwConfigurationError(COMMUNITY_ERRORS.AUTH_REQUIRED);
+      }
+      
+      // Production mode - use real Firebase
+      return await persistence.togglePostLike(postId);
     } catch (error) {
       console.error('Error toggling post like:', error);
       throw error;

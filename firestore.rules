@@ -29,18 +29,17 @@ service cloud.firestore {
       allow read, list: if request.auth != null && request.auth.token.admin == true;
     }
     
-    // Community posts - allow reading for all authenticated users, writing for authenticated users, deleting for admins
+    // Community posts - allow public read, authenticated write
     match /community_posts/{postId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.authorId;
-      allow update: if request.auth != null && 
+      allow read, list: if true;  // Allow public read and list access
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && 
         (request.auth.uid == resource.data.authorId || request.auth.token.admin == true);
-      allow delete: if request.auth != null && request.auth.token.admin == true;
     }
     
-    // Community comments - allow reading for all authenticated users, writing for authenticated users, deleting for admins
+    // Community comments - allow public read, authenticated write
     match /community_comments/{commentId} {
-      allow read: if request.auth != null;
+      allow read: if true;  // Allow public read access
       allow create: if request.auth != null && request.auth.uid == request.resource.data.authorId;
       allow update: if request.auth != null && 
         (request.auth.uid == resource.data.authorId || request.auth.token.admin == true);
