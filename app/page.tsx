@@ -38,24 +38,6 @@ const staggerContainer = {
 export default function Home() {
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-garden-cream via-white to-garden-cream/50 overflow-x-hidden">
-      {/* Bolt.new Badge */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <Link 
-          href="https://bolt.new/" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="block hover:scale-105 transition-transform duration-200"
-        >
-          <Image
-            src="/images/bolt-badge.png"
-            alt="Powered by Bolt.new"
-            width={80}
-            height={80}
-            className="w-16 h-16 md:w-20 md:h-20 drop-shadow-lg"
-            priority
-          />
-        </Link>
-      </div>
 
       {/* Hero Section - Enhanced with Emotional Hook */}
       <section className="w-full px-4 py-16 md:py-24 lg:py-20 xl:py-24 relative overflow-hidden" role="banner">
