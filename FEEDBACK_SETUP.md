@@ -63,7 +63,7 @@ firebase init functions
 
 ```bash
 # Set your SendGrid API key in Firebase Functions config
-firebase functions:config:set sendgrid.api_key="***REMOVED***"
+firebase functions:config:set sendgrid.api_key="YOUR_SENDGRID_API_KEY_HERE"
 
 # Verify the configuration
 firebase functions:config:get
