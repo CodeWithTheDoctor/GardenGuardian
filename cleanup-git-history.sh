@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# GardenGuardian AI - Git History Cleanup Script
+# GardenGuardian AI - Git History Security Cleanup Script
 # This script removes exposed API keys from git history
 
 echo "🔐 GardenGuardian AI - Git History Security Cleanup"
@@ -33,7 +33,7 @@ echo "🧹 Starting git history cleanup..."
 
 # Create a file with the exposed API keys to remove
 cat > keys-to-remove.txt << 'EOF'
-***REMOVED***
+[REDACTED_API_KEY]
 EOF
 
 # Run BFG to remove the keys

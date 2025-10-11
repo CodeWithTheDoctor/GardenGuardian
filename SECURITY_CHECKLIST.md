@@ -4,7 +4,7 @@
 
 **Exposed Keys Found:**
 
-- SendGrid API Key: `***REMOVED***`
+- SendGrid API Key: `[REDACTED - Key has been removed from codebase]`
 
 ## 🚨 IMMEDIATE ACTIONS REQUIRED
 
@@ -38,10 +38,10 @@
 ### Environment Variables Setup
 
 ```bash
-# Run the setup script
-./setup-env.sh
+# Run the template script (creates .env.local with placeholders)
+./setup-env-template.sh
 
-# Edit the created .env.local file
+# Edit the created .env.local file with your actual keys
 nano .env.local
 ```
 

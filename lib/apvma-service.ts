@@ -50,7 +50,7 @@ export interface WeatherForecast {
 
 class APVMAService {
   private readonly baseUrl = 'https://data.gov.au/api/3/action/datastore_search';
-  private readonly bomApiKey = '1edd79e4-2e21-4d88-a000-3f0bce4586c7'; // From the report
+  private readonly bomApiKey = process.env.NEXT_PUBLIC_BOM_API_KEY || '1edd79e4-2e21-4d88-a000-3f0bce4586c7'; // BOM public API key
   private readonly bomBaseUrl = 'https://api.weather.bom.gov.au';
   
   // Add OpenWeatherMap as primary weather source
