@@ -1,12 +1,13 @@
 #!/bin/bash
 
-# GardenGuardian AI - Environment Setup Script
-# This script helps you set up your environment variables securely
+# GardenGuardian AI - Environment Setup Template
+# This script creates a template .env.local file
+# NO ACTUAL API KEYS SHOULD BE IN THIS FILE
 
 echo "🔐 Setting up GardenGuardian AI Environment Variables"
 echo "=================================================="
 
-# Create .env.local file
+# Create .env.local file with placeholders
 cat > .env.local << 'EOF'
 # GardenGuardian AI - Environment Variables
 # Fill in your actual API keys below
@@ -30,15 +31,15 @@ NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id_here
 NEXT_PUBLIC_OPENWEATHER_API_KEY=your_openweather_api_key_here
 EOF
 
-echo "✅ Created .env.local file"
+echo "✅ Created .env.local template file"
 echo "📝 Please edit .env.local and add your actual API keys"
 echo "🔒 The .env.local file is already in .gitignore and will not be committed"
 echo ""
 echo "⚠️  IMPORTANT SECURITY STEPS:"
 echo "1. Regenerate your compromised API keys immediately"
 echo "2. Update the keys in .env.local"
-echo "3. Run the git history cleanup script"
+echo "3. Never commit .env.local to git"
 echo ""
 echo "🚀 Next steps:"
 echo "1. Edit .env.local with your actual keys"
-echo "2. Run: chmod +x cleanup-git-history.sh && ./cleanup-git-history.sh"
+echo "2. Test your application with the new keys"
